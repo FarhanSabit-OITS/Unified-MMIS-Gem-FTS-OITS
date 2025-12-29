@@ -67,8 +67,8 @@ export const QRModule: React.FC = () => {
       </div>
 
       <div className="flex flex-wrap gap-2 bg-slate-100/50 p-2 rounded-2xl w-fit border border-slate-200/50 shadow-inner">
-        <button onClick={() => setActiveTab('TOKENS')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'TOKENS' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:bg-white'}`}>Active Tokens</button>
-        <button onClick={() => setActiveTab('SCANNER')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'SCANNER' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:bg-white'}`}>Triage Scanner</button>
+        <button onClick={() => setActiveTab('TOKENS')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'TOKENS' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:bg-white'}`}>Active Tokens</button>
+        <button onClick={() => setActiveTab('SCANNER')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'SCANNER' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:bg-white'}`}>Triage Scanner</button>
       </div>
 
       {activeTab === 'TOKENS' ? (

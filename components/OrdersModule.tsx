@@ -96,9 +96,9 @@ export const OrdersModule: React.FC<OrdersModuleProps> = ({ user }) => {
         </div>
       </div>
 
-      <div className="flex gap-2 bg-slate-100/50 p-2 rounded-2xl w-fit border border-slate-200/50 shadow-inner">
-        <button onClick={() => setActiveTab('INCOMING')} className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'INCOMING' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:text-slate-800'}`}>Incoming Sales</button>
-        <button onClick={() => setActiveTab('OUTGOING')} className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'OUTGOING' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:text-slate-800'}`}>Outgoing Purchases</button>
+      <div className="flex gap-2 bg-slate-100/50 p-2 rounded-2xl w-full md:w-fit border border-slate-200/50 shadow-inner overflow-x-auto">
+        <button onClick={() => setActiveTab('INCOMING')} className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'INCOMING' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:text-slate-800'}`}>Incoming Sales</button>
+        <button onClick={() => setActiveTab('OUTGOING')} className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'OUTGOING' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-500 hover:text-slate-800'}`}>Outgoing Purchases</button>
       </div>
 
       <div className="space-y-4">

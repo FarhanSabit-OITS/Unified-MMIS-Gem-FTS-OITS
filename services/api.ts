@@ -87,6 +87,7 @@ export const ApiService = {
   // --- AI ---
   ai: {
     chat: (message: string) => api.post('/ai/chat', { message }),
+    summarize: (text: string) => api.post('/ai/summarize', { text }),
   }
 };
 

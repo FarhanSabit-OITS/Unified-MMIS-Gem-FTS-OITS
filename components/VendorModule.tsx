@@ -27,7 +27,8 @@ import {
   MapPin,
   Building2,
   CheckCircle2,
-  Loader2
+  Loader2,
+  Briefcase
 } from 'lucide-react';
 import { Button } from './ui/Button';
 
@@ -304,10 +305,10 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
           />
       )}
 
-      {/* Filters Toolbar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex gap-4 flex-1 overflow-x-auto pb-1 sm:pb-0">
-          <div className="relative min-w-[200px]">
+      {/* Filters Toolbar - Responsive Refactor */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto flex-1 overflow-hidden">
+          <div className="relative w-full md:w-64 shrink-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
               type="text" 
@@ -318,51 +319,53 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
             />
           </div>
           
-          <select 
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50"
-            value={selectedCity}
-            onChange={(e) => { setSelectedCity(e.target.value); setSelectedMarket(''); }}
-          >
-            <option value="">All Cities</option>
-            {CITIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto scrollbar-hide">
+            <select 
+                className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 shrink-0"
+                value={selectedCity}
+                onChange={(e) => { setSelectedCity(e.target.value); setSelectedMarket(''); }}
+            >
+                <option value="">All Cities</option>
+                {CITIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
 
-          {/* Conditional Market Dropdown */}
-          {selectedCity && (
-             <select 
-             className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50"
-             value={selectedMarket}
-             onChange={(e) => setSelectedMarket(e.target.value)}
-           >
-             <option value="">All Markets in City</option>
-             {availableMarkets.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-           </select>
-          )}
+            {/* Conditional Market Dropdown */}
+            {selectedCity && (
+                <select 
+                className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 shrink-0"
+                value={selectedMarket}
+                onChange={(e) => setSelectedMarket(e.target.value)}
+            >
+                <option value="">All Markets</option>
+                {availableMarkets.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+            )}
 
-          <select 
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="ALL">All Status</option>
-            <option value="ACTIVE">Active</option>
-            <option value="SUSPENDED">Suspended</option>
-          </select>
+            <select 
+                className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 shrink-0"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+            >
+                <option value="ALL">All Status</option>
+                <option value="ACTIVE">Active</option>
+                <option value="SUSPENDED">Suspended</option>
+            </select>
 
-          <select 
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50"
-            value={rentDueFilter}
-            onChange={(e) => setRentDueFilter(e.target.value)}
-          >
-            <option value="ALL">All Rent Ranges</option>
-            <option value="0-50K">0 - 50,000 UGX</option>
-            <option value="50K-200K">50,000 - 200,000 UGX</option>
-            <option value="200K+">200,000+ UGX</option>
-          </select>
+            <select 
+                className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 shrink-0"
+                value={rentDueFilter}
+                onChange={(e) => setRentDueFilter(e.target.value)}
+            >
+                <option value="ALL">All Rent Ranges</option>
+                <option value="0-50K">0 - 50K</option>
+                <option value="50K-200K">50K - 200K</option>
+                <option value="200K+">200K+</option>
+            </select>
+          </div>
         </div>
         
         {isAdmin && (
-          <Button onClick={() => setShowAddVendorModal(true)} className="flex items-center gap-2">
+          <Button onClick={() => setShowAddVendorModal(true)} className="w-full md:w-auto flex items-center justify-center gap-2 shrink-0">
             <UserPlus size={18} /> Add Vendor
           </Button>
         )}
@@ -485,22 +488,22 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
             </div>
             
             {/* Modal Tabs */}
-            <div className="flex border-b border-slate-100 px-6 gap-6 shrink-0">
+            <div className="flex border-b border-slate-100 px-6 gap-6 shrink-0 overflow-x-auto">
                 <button 
                     onClick={() => setActiveModalTab('OVERVIEW')}
-                    className={`py-3 text-sm font-bold border-b-2 transition-colors ${activeModalTab === 'OVERVIEW' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+                    className={`py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeModalTab === 'OVERVIEW' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
                 >
                     Overview
                 </button>
                 <button 
                     onClick={() => setActiveModalTab('DUES')}
-                    className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeModalTab === 'DUES' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+                    className={`py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeModalTab === 'DUES' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
                 >
                     <History size={14} /> Dues History
                 </button>
                 <button 
                     onClick={() => setActiveModalTab('DOCUMENTS')}
-                    className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeModalTab === 'DOCUMENTS' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+                    className={`py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeModalTab === 'DOCUMENTS' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
                 >
                     <FileText size={14} /> Documents
                 </button>
@@ -586,7 +589,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                            <div className="flex gap-2 shrink-0">
                                <button 
                                   onClick={() => setDuesSort(duesSort === 'DATE' ? 'AMOUNT' : 'DATE')}
-                                  className="text-xs flex items-center gap-1 font-bold text-slate-600 bg-slate-100 px-2 py-1.5 rounded hover:bg-slate-200"
+                                  className="text-xs flex items-center gap-1 font-bold text-slate-600 bg-slate-100 px-2 py-1.5 rounded hover:bg-slate-200 whitespace-nowrap"
                                >
                                    <ArrowUpDown size={12} /> Sort by {duesSort === 'DATE' ? 'Date' : 'Amount'}
                                </button>

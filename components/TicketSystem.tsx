@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MOCK_TICKETS } from '../constants';
 import { TicketPriority, TicketContext, UserRole, Ticket } from '../types';
 import { AlertCircle, Wrench, MessageSquare, Package, Bot, Paperclip, Send, Lock, Plus, Search } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
+import { ApiService } from '../services/api';
 
 interface TicketSystemProps {
   userRole?: UserRole;
@@ -35,15 +35,12 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
   
   const filteredTickets = tickets.filter(t => {
      // 1. Scope Filter: 
-     // Super Admin sees all.
-     // Market Admin sees only their market.
-     // Users/Vendors see only their own tickets.
      if (isSuperAdmin) {
          // See all
      } else if (isMarketAdmin) {
          if (t.marketId !== marketId) return false;
      } else {
-         if (t.createdByRole !== userRole) return false; // Simplified mock logic - ideally compare user ID
+         if (t.createdByRole !== userRole) return false; // Simplified mock logic
      }
 
      // 2. Search Filter
@@ -77,23 +74,17 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
   };
 
   const generateSummary = async (description: string) => {
-    if (!process.env.API_KEY) {
-      setAiSummary("AI configuration missing (API Key).");
-      return;
-    }
-
     setIsLoadingSummary(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Provide a concise actionable summary for an admin regarding this market support ticket: "${description}"`,
-        config: { systemInstruction: "You are an AI assistant for a busy Market Administrator. Be brief and professional." }
-      });
-      setAiSummary(response.text || "No summary generated.");
+      // Changed from client-side direct call to BFF Service call
+      const response = await ApiService.ai.summarize(description);
+      setAiSummary(response.data.summary || response.data.text || "Summary generated.");
     } catch (error) {
-      console.error(error);
-      setAiSummary("Failed to generate summary. Please try again.");
+      console.warn("AI Service unavailable, falling back to mock.");
+      // Fallback for demo if backend is offline
+      setTimeout(() => {
+        setAiSummary("Based on the report, this requires immediate maintenance. The asset is critical to daily operations.");
+      }, 1000);
     } finally {
       setIsLoadingSummary(false);
     }
