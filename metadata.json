@@ -1,0 +1,8 @@
+{
+  "name": "MMIS - Market Management Information System",
+  "description": "A comprehensive SaaS platform for managing markets, vendors, suppliers, and logistics with RBAC, AI integration, and advanced financial tracking.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
