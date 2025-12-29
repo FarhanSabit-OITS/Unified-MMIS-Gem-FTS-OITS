@@ -21,7 +21,13 @@ import {
   FileText,
   Save,
   AlertTriangle,
-  Trash2
+  Trash2,
+  Upload,
+  UserPlus,
+  MapPin,
+  Building2,
+  CheckCircle2,
+  Loader2
 } from 'lucide-react';
 import { Button } from './ui/Button';
 
@@ -43,7 +49,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   
   // Modals
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
-  const [activeModalTab, setActiveModalTab] = useState<'OVERVIEW' | 'DUES'>('OVERVIEW');
+  const [activeModalTab, setActiveModalTab] = useState<'OVERVIEW' | 'DUES' | 'DOCUMENTS'>('OVERVIEW');
   const [qrModalVendor, setQrModalVendor] = useState<Vendor | null>(null);
   
   // Payment
@@ -58,6 +64,31 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   const [duesFilter, setDuesFilter] = useState('ALL'); // ALL, PENDING, PAID, OVERDUE
   const [duesSearchTerm, setDuesSearchTerm] = useState('');
 
+  // --- Add Vendor Modal State ---
+  const [showAddVendorModal, setShowAddVendorModal] = useState(false);
+  const [addVendorStep, setAddVendorStep] = useState<'FORM' | 'SUCCESS'>('FORM');
+  const [addVendorFile, setAddVendorFile] = useState<File | null>(null);
+  const [addFileError, setAddFileError] = useState('');
+  const [isSubmittingNewVendor, setIsSubmittingNewVendor] = useState(false);
+  const [newVendorData, setNewVendorData] = useState({
+    name: '',
+    shopNumber: '',
+    marketId: '',
+    email: '',
+    phone: '',
+    rentDue: 0,
+    vatDue: 0,
+    status: 'ACTIVE' as 'ACTIVE' | 'SUSPENDED',
+    kycVerified: false,
+    gender: 'MALE' as 'MALE' | 'FEMALE',
+    age: 0,
+    city: '',
+    level: '',
+    section: '',
+    storeType: 'Retail',
+    ownershipType: 'Sole Proprietorship'
+  });
+
   const isAdmin = userRole === UserRole.SUPER_ADMIN || userRole === UserRole.MARKET_ADMIN;
 
   // FETCH VENDORS FROM BACKEND
@@ -65,7 +96,6 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
     const fetchVendors = async () => {
       setIsLoading(true);
       try {
-        // Fix: Use correct API method path
         const response = await ApiService.vendors.getAll();
         if (response.data && Array.isArray(response.data)) {
           setVendors(response.data);
@@ -184,6 +214,85 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
       logAuditAction('NOTE_UPDATE', selectedVendor.name, 'Updated vendor administrative notes');
   };
 
+  // --- Add Vendor Handlers ---
+
+  const handleAddFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAddFileError('');
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+      
+      if (!validTypes.includes(file.type)) {
+        setAddFileError('Invalid file type. Use JPG, PNG, or PDF.');
+        return;
+      }
+      
+      if (file.size > 5 * 1024 * 1024) {
+        setAddFileError('File size exceeds 5MB limit.');
+        return;
+      }
+
+      setAddVendorFile(file);
+    }
+  };
+
+  const handleSubmitNewVendor = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newVendorData.name || !newVendorData.shopNumber || !newVendorData.marketId) {
+      alert("Please fill in required fields (Name, Shop, Market)");
+      return;
+    }
+
+    if (!addVendorFile) {
+      setAddFileError("KYC Document is required.");
+      return;
+    }
+
+    setIsSubmittingNewVendor(true);
+
+    // Simulate API Call
+    setTimeout(() => {
+      setIsSubmittingNewVendor(false);
+      
+      // Create Mock Vendor
+      const newVendor: Vendor = {
+        id: `v${Date.now()}`,
+        name: newVendorData.name,
+        shopNumber: newVendorData.shopNumber,
+        marketId: newVendorData.marketId,
+        status: newVendorData.status,
+        rentDue: newVendorData.rentDue,
+        vatDue: newVendorData.vatDue,
+        gender: newVendorData.gender,
+        age: newVendorData.age || 30, // Default if 0
+        productsCount: 0,
+        kycVerified: false, // Default pending
+        notes: 'New application pending review.',
+        storeType: newVendorData.storeType,
+        ownershipType: newVendorData.ownershipType,
+        level: newVendorData.level,
+        section: newVendorData.section
+      };
+
+      setVendors(prev => [newVendor, ...prev]);
+      setAddVendorStep('SUCCESS');
+      logAuditAction('CREATE_VENDOR', newVendor.name, 'Registered new vendor via dashboard.');
+    }, 2000);
+  };
+
+  const resetAddVendorModal = () => {
+    setShowAddVendorModal(false);
+    setAddVendorStep('FORM');
+    setAddVendorFile(null);
+    setNewVendorData({
+      name: '', shopNumber: '', marketId: '', email: '', phone: '',
+      rentDue: 0, vatDue: 0, status: 'ACTIVE', kycVerified: false,
+      gender: 'MALE', age: 0, city: '', level: '', section: '',
+      storeType: 'Retail', ownershipType: 'Sole Proprietorship'
+    });
+  };
+
   return (
     <div className="space-y-6">
       {paymentVendor && (
@@ -253,8 +362,8 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
         </div>
         
         {isAdmin && (
-          <Button>
-            + Add Vendor
+          <Button onClick={() => setShowAddVendorModal(true)} className="flex items-center gap-2">
+            <UserPlus size={18} /> Add Vendor
           </Button>
         )}
       </div>
@@ -378,21 +487,27 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
             {/* Modal Tabs */}
             <div className="flex border-b border-slate-100 px-6 gap-6 shrink-0">
                 <button 
-                    onClick={() => setActiveTab('OVERVIEW')}
-                    className={`py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'OVERVIEW' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+                    onClick={() => setActiveModalTab('OVERVIEW')}
+                    className={`py-3 text-sm font-bold border-b-2 transition-colors ${activeModalTab === 'OVERVIEW' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
                 >
                     Overview
                 </button>
                 <button 
-                    onClick={() => setActiveTab('DUES')}
-                    className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'DUES' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+                    onClick={() => setActiveModalTab('DUES')}
+                    className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeModalTab === 'DUES' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
                 >
                     <History size={14} /> Dues History
+                </button>
+                <button 
+                    onClick={() => setActiveModalTab('DOCUMENTS')}
+                    className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeModalTab === 'DOCUMENTS' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+                >
+                    <FileText size={14} /> Documents
                 </button>
             </div>
 
             <div className="p-6 space-y-6 overflow-y-auto">
-               {activeTab === 'OVERVIEW' ? (
+               {activeModalTab === 'OVERVIEW' ? (
                    <>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 bg-slate-50 rounded-lg">
@@ -454,7 +569,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                         </div>
                     </div>
                    </>
-               ) : (
+               ) : activeModalTab === 'DUES' ? (
                    /* DUES / HISTORY TAB */
                    <div className="space-y-4">
                        <div className="flex flex-col sm:flex-row justify-between gap-2">
@@ -492,7 +607,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                            <table className="w-full text-xs text-left">
                                <thead className="bg-slate-50 text-slate-500 font-bold">
                                    <tr>
-                                       <th className="px-3 py-2">Ref</th>
+                                       <th className="px-3 py-2">Ref ID</th>
                                        <th className="px-3 py-2">Date</th>
                                        <th className="px-3 py-2">Type</th>
                                        <th className="px-3 py-2">Amount</th>
@@ -526,9 +641,205 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                            </table>
                        </div>
                    </div>
+               ) : (
+                  /* DOCUMENTS TAB */
+                  <div className="space-y-4">
+                     <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 text-center">
+                        <Upload size={32} className="mx-auto text-slate-400 mb-2" />
+                        <h4 className="text-sm font-bold text-slate-700">Vendor Documents</h4>
+                        <p className="text-xs text-slate-500 mb-4">KYC verification documents and licenses.</p>
+                     </div>
+                     
+                     <div className="space-y-2">
+                        <div className="flex items-center justify-between p-3 border border-slate-200 rounded-lg hover:bg-slate-50">
+                            <div className="flex items-center gap-3">
+                                <FileText className="text-red-500" size={20} />
+                                <div>
+                                    <div className="text-sm font-bold text-slate-800">Trading_License_2023.pdf</div>
+                                    <div className="text-xs text-slate-500">Uploaded on 2023-01-15</div>
+                                </div>
+                            </div>
+                            <button className="text-slate-400 hover:text-blue-600"><Download size={16}/></button>
+                        </div>
+                        <div className="flex items-center justify-between p-3 border border-slate-200 rounded-lg hover:bg-slate-50">
+                            <div className="flex items-center gap-3">
+                                <FileText className="text-blue-500" size={20} />
+                                <div>
+                                    <div className="text-sm font-bold text-slate-800">National_ID_Scan.jpg</div>
+                                    <div className="text-xs text-slate-500">Uploaded on 2023-01-10</div>
+                                </div>
+                            </div>
+                            <button className="text-slate-400 hover:text-blue-600"><Download size={16}/></button>
+                        </div>
+                     </div>
+                  </div>
                )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Add Vendor Modal */}
+      {showAddVendorModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                      <UserPlus size={20} className="text-indigo-600" />
+                      Add New Vendor
+                    </h3>
+                    <p className="text-xs text-slate-500">Register a new vendor and allocate shop space.</p>
+                  </div>
+                  <button onClick={resetAddVendorModal} className="text-slate-400 hover:text-slate-600">
+                    <X size={20} />
+                  </button>
+              </div>
+
+              {addVendorStep === 'FORM' ? (
+                <div className="p-6 overflow-y-auto">
+                    <form onSubmit={handleSubmitNewVendor} className="space-y-6">
+                        {/* Personal Details */}
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Personal Information</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                              <div className="col-span-2 sm:col-span-1">
+                                  <label className="block text-xs font-bold text-slate-500 mb-1">Full Name *</label>
+                                  <input required type="text" className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="e.g. John Doe" value={newVendorData.name} onChange={e => setNewVendorData({...newVendorData, name: e.target.value})} />
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Gender</label>
+                                    <select className="w-full px-3 py-2 border rounded-lg text-sm bg-white" value={newVendorData.gender} onChange={e => setNewVendorData({...newVendorData, gender: e.target.value as any})}>
+                                        <option value="MALE">Male</option>
+                                        <option value="FEMALE">Female</option>
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Age</label>
+                                    <input type="number" className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="30" value={newVendorData.age} onChange={e => setNewVendorData({...newVendorData, age: parseInt(e.target.value)})} />
+                                  </div>
+                              </div>
+                              <div className="col-span-2 sm:col-span-1">
+                                  <label className="block text-xs font-bold text-slate-500 mb-1">Phone Number</label>
+                                  <input type="tel" className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="+256..." value={newVendorData.phone} onChange={e => setNewVendorData({...newVendorData, phone: e.target.value})} />
+                              </div>
+                              <div className="col-span-2 sm:col-span-1">
+                                  <label className="block text-xs font-bold text-slate-500 mb-1">Email Address</label>
+                                  <input type="email" className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="vendor@mail.com" value={newVendorData.email} onChange={e => setNewVendorData({...newVendorData, email: e.target.value})} />
+                              </div>
+                          </div>
+                        </div>
+
+                        {/* Shop Details */}
+                        <div>
+                           <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Shop Allocation</h4>
+                           <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                  <label className="block text-xs font-bold text-slate-500 mb-1">Market *</label>
+                                  <select required className="w-full px-3 py-2 border rounded-lg text-sm bg-white" value={newVendorData.marketId} onChange={e => setNewVendorData({...newVendorData, marketId: e.target.value})}>
+                                      <option value="">Select Market</option>
+                                      {MARKETS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                  </select>
+                              </div>
+                              <div>
+                                  <label className="block text-xs font-bold text-slate-500 mb-1">Shop Number *</label>
+                                  <input required type="text" className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="e.g. A-101" value={newVendorData.shopNumber} onChange={e => setNewVendorData({...newVendorData, shopNumber: e.target.value})} />
+                              </div>
+                              <div>
+                                  <label className="block text-xs font-bold text-slate-500 mb-1">Level / Floor</label>
+                                  <input type="text" className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Ground Floor" value={newVendorData.level} onChange={e => setNewVendorData({...newVendorData, level: e.target.value})} />
+                              </div>
+                              <div>
+                                  <label className="block text-xs font-bold text-slate-500 mb-1">Section</label>
+                                  <input type="text" className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Fresh Foods" value={newVendorData.section} onChange={e => setNewVendorData({...newVendorData, section: e.target.value})} />
+                              </div>
+                           </div>
+                        </div>
+
+                        {/* Financials & Status */}
+                        <div>
+                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Business Profile</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Ownership Type</label>
+                                    <select className="w-full px-3 py-2 border rounded-lg text-sm bg-white" value={newVendorData.ownershipType} onChange={e => setNewVendorData({...newVendorData, ownershipType: e.target.value})}>
+                                        <option>Sole Proprietorship</option>
+                                        <option>Partnership</option>
+                                        <option>Limited Company</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Store Type</label>
+                                    <select className="w-full px-3 py-2 border rounded-lg text-sm bg-white" value={newVendorData.storeType} onChange={e => setNewVendorData({...newVendorData, storeType: e.target.value})}>
+                                        <option>Retail</option>
+                                        <option>Wholesale</option>
+                                        <option>Service</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Initial Rent Due</label>
+                                    <input type="number" className="w-full px-3 py-2 border rounded-lg text-sm" value={newVendorData.rentDue} onChange={e => setNewVendorData({...newVendorData, rentDue: parseFloat(e.target.value)})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Initial Status</label>
+                                    <select className="w-full px-3 py-2 border rounded-lg text-sm bg-white" value={newVendorData.status} onChange={e => setNewVendorData({...newVendorData, status: e.target.value as any})}>
+                                        <option value="ACTIVE">Active</option>
+                                        <option value="SUSPENDED">Suspended</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* KYC Upload */}
+                        <div className="p-4 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 text-center">
+                            <input 
+                              type="file" 
+                              id="modal-kyc-upload" 
+                              className="hidden" 
+                              accept=".jpg,.png,.pdf" 
+                              onChange={handleAddFileChange} 
+                            />
+                            <label htmlFor="modal-kyc-upload" className="cursor-pointer">
+                                {addVendorFile ? (
+                                    <div className="flex items-center justify-center gap-2 text-green-600 font-bold">
+                                        <CheckCircle2 size={20} />
+                                        {addVendorFile.name}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-1 text-slate-500">
+                                        <Upload size={24} className="mb-1" />
+                                        <span className="font-bold text-sm">Upload KYC Document *</span>
+                                        <span className="text-xs">ID or License (Max 5MB)</span>
+                                    </div>
+                                )}
+                            </label>
+                            {addFileError && <p className="text-xs text-red-500 mt-2 font-bold">{addFileError}</p>}
+                        </div>
+
+                        <div className="flex gap-3 pt-4 border-t border-slate-100">
+                            <Button type="button" variant="secondary" onClick={resetAddVendorModal} className="flex-1">Cancel</Button>
+                            <Button type="submit" disabled={isSubmittingNewVendor} className="flex-1 flex items-center justify-center gap-2">
+                                {isSubmittingNewVendor ? <Loader2 className="animate-spin" /> : <Save size={16} />} 
+                                Register Vendor
+                            </Button>
+                        </div>
+                    </form>
+                </div>
+              ) : (
+                <div className="p-10 flex flex-col items-center justify-center text-center animate-in zoom-in">
+                    <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-sm">
+                        <CheckCircle2 size={48} />
+                    </div>
+                    <h3 className="text-2xl font-black text-slate-900 mb-2">Registration Successful</h3>
+                    <p className="text-slate-500 max-w-sm mb-8">
+                        Vendor <strong>{newVendorData.name}</strong> has been registered to Shop <strong>{newVendorData.shopNumber}</strong>. 
+                        The application is currently <span className="text-amber-600 font-bold">Pending Approval</span>.
+                    </p>
+                    <Button onClick={resetAddVendorModal} className="w-full max-w-xs">Return to Dashboard</Button>
+                </div>
+              )}
+           </div>
         </div>
       )}
 
