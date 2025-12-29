@@ -46,7 +46,8 @@ export const MOCK_TICKETS: Ticket[] = [
     priority: TicketPriority.HIGH, 
     status: 'OPEN', 
     createdAt: '2023-10-25T10:00:00Z',
-    createdByRole: UserRole.GATE_STAFF
+    createdByRole: UserRole.GATE_STAFF,
+    marketId: 'm1'
   },
   { 
     id: 't2', 
@@ -57,7 +58,8 @@ export const MOCK_TICKETS: Ticket[] = [
     status: 'ASSIGNED', 
     assignedTo: 'Admin Jane', 
     createdAt: '2023-10-24T14:30:00Z',
-    createdByRole: UserRole.VENDOR
+    createdByRole: UserRole.VENDOR,
+    marketId: 'm1'
   },
   { 
     id: 't3', 
@@ -67,16 +69,17 @@ export const MOCK_TICKETS: Ticket[] = [
     priority: TicketPriority.CRITICAL, 
     status: 'RESOLVED', 
     createdAt: '2023-10-26T08:15:00Z',
-    createdByRole: UserRole.SUPPLIER
+    createdByRole: UserRole.SUPPLIER,
+    marketId: 'm2'
   },
 ];
 
 export const DUMMY_CREDENTIALS = [
-  { label: 'Super Admin', email: 'super@mmis.tevas.ug', password: '123', role: UserRole.SUPER_ADMIN },
-  { label: 'Market Admin', email: 'admin.kla@mmis.tevas.ug', password: '123', role: UserRole.MARKET_ADMIN },
-  { label: 'Vendor', email: 'vendor@shop.com', password: '123', role: UserRole.VENDOR },
+  { label: 'Super Admin', email: 'super@mmis.tevas.ug', password: '123', role: UserRole.SUPER_ADMIN, marketId: null },
+  { label: 'Market Admin (Nakasero)', email: 'admin.kla@mmis.tevas.ug', password: '123', role: UserRole.MARKET_ADMIN, marketId: 'm1' },
+  { label: 'Vendor (Nakasero)', email: 'vendor@shop.com', password: '123', role: UserRole.VENDOR, marketId: 'm1' },
   { label: 'Supplier', email: 'supplier@agro.com', password: '123', role: UserRole.SUPPLIER },
-  { label: 'Gate Staff', email: 'gate@mmis.tevas.ug', password: '123', role: UserRole.GATE_STAFF },
+  { label: 'Gate Staff (Nakasero)', email: 'gate@mmis.tevas.ug', password: '123', role: UserRole.GATE_STAFF, marketId: 'm1' },
   { label: 'General User', email: 'user@public.com', password: '123', role: UserRole.USER },
 ];
 
@@ -139,19 +142,20 @@ export const MOCK_BIDS: Bid[] = [
 // --- Mock Assets & Staff ---
 
 export const MOCK_CCTV: AssetCCTV[] = [
-  { id: 'cam1', name: 'Main Gate Cam A', location: 'North Entrance', status: 'ONLINE', lastMaintenance: '2023-10-01' },
-  { id: 'cam2', name: 'Loading Bay 1', location: 'Zone A', status: 'RECORDING', lastMaintenance: '2023-10-15' },
-  { id: 'cam3', name: 'Perimeter Cam 4', location: 'East Wall', status: 'OFFLINE', lastMaintenance: '2023-09-20' },
+  { id: 'cam1', name: 'Main Gate Cam A', location: 'North Entrance', status: 'ONLINE', lastMaintenance: '2023-10-01', marketId: 'm1' },
+  { id: 'cam2', name: 'Loading Bay 1', location: 'Zone A', status: 'RECORDING', lastMaintenance: '2023-10-15', marketId: 'm1' },
+  { id: 'cam3', name: 'Perimeter Cam 4', location: 'East Wall', status: 'OFFLINE', lastMaintenance: '2023-09-20', marketId: 'm2' },
+  { id: 'cam4', name: 'Market Central Hall', location: 'Center', status: 'ONLINE', lastMaintenance: '2023-10-01', marketId: 'm2' },
 ];
 
 export const MOCK_POWER: PowerZone[] = [
-  { id: 'pz1', floor: 'Ground Floor (Wholesale)', status: 'STABLE', load: 65 },
-  { id: 'pz2', floor: 'Level 1 (Retail)', status: 'FLUCTUATING', load: 88 },
-  { id: 'pz3', floor: 'Level 2 (Offices)', status: 'STABLE', load: 40 },
+  { id: 'pz1', floor: 'Ground Floor (Wholesale)', status: 'STABLE', load: 65, marketId: 'm1' },
+  { id: 'pz2', floor: 'Level 1 (Retail)', status: 'FLUCTUATING', load: 88, marketId: 'm1' },
+  { id: 'pz3', floor: 'Level 2 (Offices)', status: 'STABLE', load: 40, marketId: 'm2' },
 ];
 
 export const MOCK_STAFF: StaffMember[] = [
-  { id: 'st1', name: 'David Kasozi', role: 'SECURITY', shift: 'MORNING', status: 'ON_DUTY', phone: '077000001' },
-  { id: 'st2', name: 'Mary A.', role: 'CLEANER', shift: 'MORNING', status: 'ON_DUTY', phone: '077000002' },
-  { id: 'st3', name: 'Peter O.', role: 'MAINTENANCE', shift: 'AFTERNOON', status: 'OFF_DUTY', phone: '077000003' },
+  { id: 'st1', name: 'David Kasozi', role: 'SECURITY', shift: 'MORNING', status: 'ON_DUTY', phone: '077000001', marketId: 'm1' },
+  { id: 'st2', name: 'Mary A.', role: 'CLEANER', shift: 'MORNING', status: 'ON_DUTY', phone: '077000002', marketId: 'm1' },
+  { id: 'st3', name: 'Peter O.', role: 'MAINTENANCE', shift: 'AFTERNOON', status: 'OFF_DUTY', phone: '077000003', marketId: 'm2' },
 ];

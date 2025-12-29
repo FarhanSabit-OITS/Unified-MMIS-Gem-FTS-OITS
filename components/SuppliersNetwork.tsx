@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import { MOCK_SUPPLIERS, MOCK_REQUISITIONS, MOCK_BIDS } from '../constants';
-import { Supplier, Bid, Requisition } from '../types';
-import { Star, ShieldCheck, Truck, BarChart3, X, Gavel, FileText, CheckCircle2, Bot, Search } from 'lucide-react';
+import { Supplier, Bid, Requisition, UserRole } from '../types';
+import { Star, ShieldCheck, Truck, BarChart3, X, Gavel, FileText, CheckCircle2, Bot, Search, Lock } from 'lucide-react';
 
-export const SuppliersNetwork: React.FC = () => {
+interface SuppliersNetworkProps {
+  userRole?: UserRole;
+  userId?: string;
+}
+
+export const SuppliersNetwork: React.FC<SuppliersNetworkProps> = ({ userRole = UserRole.USER, userId }) => {
   const [activeTab, setActiveTab] = useState<'DIRECTORY' | 'BIDDING'>('DIRECTORY');
 
   // Directory State
@@ -18,6 +23,10 @@ export const SuppliersNetwork: React.FC = () => {
   const [selectedReq, setSelectedReq] = useState<Requisition | null>(null);
   const [bidAmount, setBidAmount] = useState('');
   const [bidNote, setBidNote] = useState('');
+
+  // Permissions
+  const canRate = userRole === UserRole.VENDOR;
+  const canBid = userRole === UserRole.SUPPLIER;
 
   // --- Directory Handlers ---
   const filteredSuppliers = suppliers.filter(s => 
@@ -56,12 +65,16 @@ export const SuppliersNetwork: React.FC = () => {
   // --- Bidding Handlers ---
   const handlePlaceBid = () => {
       if (!selectedReq || !bidAmount) return;
+      if (!canBid) {
+          alert("Only registered Suppliers can place bids.");
+          return;
+      }
       
       const newBid: Bid = {
           id: `b${Date.now()}`,
           requisitionId: selectedReq.id,
-          supplierId: 's1', // Simulating current user is Supplier 1
-          supplierName: 'My Supplier Ltd',
+          supplierId: userId || 'unknown-supplier', 
+          supplierName: 'My Supplier Ltd', // In real app, fetch from user profile
           amount: parseFloat(bidAmount),
           deliveryDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0], // 2 days later
           status: 'PENDING',
@@ -78,7 +91,7 @@ export const SuppliersNetwork: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Supplier Network</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Supplier Network Hub</h2>
           <p className="text-slate-500 text-sm">Connect with verified suppliers, view trust scores, and manage requisitions.</p>
         </div>
         
@@ -155,12 +168,22 @@ export const SuppliersNetwork: React.FC = () => {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <button 
-                      onClick={() => setRatingModalSupplier(supplier)}
-                      className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                      Rate Supplier
-                    </button>
+                    {canRate ? (
+                      <button 
+                        onClick={() => setRatingModalSupplier(supplier)}
+                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                      >
+                        Rate Supplier
+                      </button>
+                    ) : (
+                      <button 
+                        disabled
+                        className="w-full py-2 bg-slate-100 text-slate-400 rounded-lg text-sm font-medium cursor-not-allowed border border-slate-200"
+                        title="Only Vendors can rate suppliers"
+                      >
+                        Rate Supplier
+                      </button>
+                    )}
                     <button className="w-full py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-medium transition-colors">
                       View Profile
                     </button>
@@ -230,41 +253,51 @@ export const SuppliersNetwork: React.FC = () => {
                                   </ul>
                               </div>
 
-                              {/* Bidding Form */}
-                              <div className="space-y-4">
-                                  <h4 className="font-bold text-slate-800 flex items-center gap-2"><Gavel size={16}/> Your Offer</h4>
-                                  <div className="flex flex-col sm:flex-row gap-4">
-                                      <div className="flex-1">
-                                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Bid Amount (UGX)</label>
-                                          <input 
-                                            type="number" 
-                                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                                            placeholder="e.g. 500000"
-                                            value={bidAmount}
-                                            onChange={(e) => setBidAmount(e.target.value)}
-                                          />
-                                      </div>
-                                      <div className="flex-1">
-                                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Delivery Date</label>
-                                           <input type="date" className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white" />
-                                      </div>
-                                  </div>
-                                  <div>
-                                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notes / Terms</label>
-                                      <textarea 
-                                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none h-20 resize-none"
-                                        placeholder="Specifics about delivery or quality..."
-                                        value={bidNote}
-                                        onChange={(e) => setBidNote(e.target.value)}
-                                      ></textarea>
-                                  </div>
-                                  <button 
-                                    onClick={handlePlaceBid}
-                                    className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-lg shadow-purple-200 transition-all flex items-center justify-center gap-2"
-                                  >
-                                      Submit Competitive Bid
-                                  </button>
-                              </div>
+                              {/* Bidding Form (Suppliers Only) */}
+                              {canBid ? (
+                                <div className="space-y-4">
+                                    <h4 className="font-bold text-slate-800 flex items-center gap-2"><Gavel size={16}/> Your Offer</h4>
+                                    <div className="flex flex-col sm:flex-row gap-4">
+                                        <div className="flex-1">
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Bid Amount (UGX)</label>
+                                            <input 
+                                                type="number" 
+                                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                                placeholder="e.g. 500000"
+                                                value={bidAmount}
+                                                onChange={(e) => setBidAmount(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Delivery Date</label>
+                                            <input type="date" className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notes / Terms</label>
+                                        <textarea 
+                                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none h-20 resize-none"
+                                            placeholder="Specifics about delivery or quality..."
+                                            value={bidNote}
+                                            onChange={(e) => setBidNote(e.target.value)}
+                                        ></textarea>
+                                    </div>
+                                    <button 
+                                        onClick={handlePlaceBid}
+                                        className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-lg shadow-purple-200 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        Submit Competitive Bid
+                                    </button>
+                                </div>
+                              ) : (
+                                <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 text-center flex flex-col items-center justify-center">
+                                    <Lock className="text-slate-400 mb-2" size={32} />
+                                    <h4 className="font-bold text-slate-700">Restricted Access</h4>
+                                    <p className="text-xs text-slate-500 mt-1 max-w-xs">
+                                        Only KYC-verified Suppliers can submit bids. You are currently viewing as {userRole}.
+                                    </p>
+                                </div>
+                              )}
 
                               {/* Live Bids Feed */}
                               <div>

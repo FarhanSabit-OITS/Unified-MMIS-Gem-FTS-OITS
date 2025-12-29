@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MOCK_PRODUCTS } from '../constants';
 import { Product, Sale } from '../types';
 import { Plus, Trash2, Edit2, Package, Search, ShoppingCart, Calculator, X, Save, AlertTriangle } from 'lucide-react';
+import { PaymentGateway } from './PaymentGateway';
 
 interface MyShopModuleProps {
   isSupplier?: boolean;
@@ -17,6 +18,7 @@ export const MyShopModule: React.FC<MyShopModuleProps> = ({ isSupplier = false }
   // POS State
   const [cart, setCart] = useState<{product: Product, qty: number}[]>([]);
   const [salesHistory, setSalesHistory] = useState<Sale[]>([]);
+  const [isCheckout, setIsCheckout] = useState(false);
 
   // --- Inventory Handlers ---
   const handleDelete = (id: string) => {
@@ -53,15 +55,16 @@ export const MyShopModule: React.FC<MyShopModuleProps> = ({ isSupplier = false }
   };
 
   const cartTotal = cart.reduce((acc, item) => acc + (item.product.price * item.qty), 0);
+  const cartTax = cartTotal * 0.18; // 18% VAT
 
-  const handleCheckout = () => {
-      if (cart.length === 0) return;
+  const handlePaymentSuccess = (txId: string, method: string) => {
       const newSale: Sale = {
           id: `sale-${Date.now()}`,
           date: new Date().toISOString(),
           items: cart.map(i => ({ productId: i.product.id, name: i.product.name, qty: i.qty, price: i.product.price })),
           totalAmount: cartTotal,
-          paymentMethod: 'CASH' // Default for demo
+          taxAmount: cartTax,
+          paymentMethod: method as 'CASH' | 'MOMO' | 'CARD'
       };
 
       setSalesHistory([newSale, ...salesHistory]);
@@ -76,11 +79,21 @@ export const MyShopModule: React.FC<MyShopModuleProps> = ({ isSupplier = false }
       }));
 
       setCart([]);
-      alert(`Sale Complete! Total: ${cartTotal.toLocaleString()} UGX`);
+      setIsCheckout(false);
   };
 
   return (
     <div className="space-y-6">
+      {isCheckout && (
+          <PaymentGateway 
+             amount={cartTotal}
+             taxAmount={cartTax}
+             description={`POS Sale: ${cart.length} items`}
+             onSuccess={handlePaymentSuccess}
+             onClose={() => setIsCheckout(false)}
+          />
+      )}
+
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">{isSupplier ? 'Warehouse Inventory' : 'My Shop'}</h2>
@@ -263,21 +276,25 @@ export const MyShopModule: React.FC<MyShopModuleProps> = ({ isSupplier = false }
                   </div>
 
                   <div className="p-4 border-t border-slate-200 bg-slate-50 rounded-b-xl space-y-4">
-                      <div className="flex justify-between items-center text-lg font-bold text-slate-900">
+                      <div className="flex justify-between items-center text-xs text-slate-500">
+                          <span>Subtotal</span>
+                          <span>{cartTotal.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs text-slate-500">
+                          <span>VAT (18%)</span>
+                          <span>{cartTax.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-lg font-bold text-slate-900 border-t border-slate-200 pt-2">
                           <span>Total</span>
-                          <span>{cartTotal.toLocaleString()} UGX</span>
+                          <span>{(cartTotal).toLocaleString()} UGX</span>
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
-                           <button className="py-2 text-xs font-bold border border-slate-300 rounded hover:bg-white">Cash</button>
-                           <button className="py-2 text-xs font-bold border border-slate-300 rounded hover:bg-white">Momo</button>
-                           <button className="py-2 text-xs font-bold border border-slate-300 rounded hover:bg-white">Card</button>
-                      </div>
+                      
                       <button 
-                        onClick={handleCheckout}
+                        onClick={() => setIsCheckout(true)}
                         disabled={cart.length === 0}
                         className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-lg shadow-green-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
-                          <Save size={18} /> Complete Sale
+                          <Save size={18} /> Checkout & Pay
                       </button>
                   </div>
               </div>

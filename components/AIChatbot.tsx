@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Minimize2, Loader2 } from 'lucide-react';
-import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
+import { ApiService } from '../services/api';
 
 export const AIChatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,7 +9,6 @@ export const AIChatbot: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
-  const chatSessionRef = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -17,27 +16,6 @@ export const AIChatbot: React.FC = () => {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isOpen]);
-
-  const initChat = () => {
-    if (!process.env.API_KEY) return;
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      chatSessionRef.current = ai.chats.create({
-        model: 'gemini-3-flash-preview',
-        config: {
-          systemInstruction: 'You are a helpful assistant for the Market Management Information System (MMIS). You help Vendors, Admins, and Staff with inquiries about rent, stock, tickets, and gate fees. Keep answers concise.',
-        },
-      });
-    } catch (e) {
-      console.error("Failed to init chat", e);
-    }
-  };
-
-  useEffect(() => {
-    if (isOpen && !chatSessionRef.current) {
-      initChat();
-    }
-  }, [isOpen]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -48,17 +26,21 @@ export const AIChatbot: React.FC = () => {
     setIsThinking(true);
 
     try {
-      if (!chatSessionRef.current) initChat();
+      // Use BFF Service instead of direct client-side call
+      // Fix: Use correct API method path
+      const response = await ApiService.ai.chat(userMsg);
       
-      if (chatSessionRef.current) {
-        const result: GenerateContentResponse = await chatSessionRef.current.sendMessage({ message: userMsg });
-        setMessages(prev => [...prev, { role: 'model', text: result.text || "I'm not sure how to respond to that." }]);
-      } else {
-        setMessages(prev => [...prev, { role: 'model', text: "Chat service unavailable (Missing API Key)." }]);
-      }
+      setMessages(prev => [...prev, { 
+        role: 'model', 
+        text: response.data.text || response.data.response || "I received your message but couldn't generate a text response." 
+      }]);
     } catch (error) {
-      console.error(error);
-      setMessages(prev => [...prev, { role: 'model', text: "Sorry, I encountered an error. Please try again." }]);
+      console.error("AI Service Error:", error);
+      // Fallback for demo/offline mode if backend isn't reachable
+      setMessages(prev => [...prev, { 
+        role: 'model', 
+        text: "I'm having trouble connecting to the neural core (Backend API). Please ensure the backend is running." 
+      }]);
     } finally {
       setIsThinking(false);
     }

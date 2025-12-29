@@ -6,9 +6,10 @@ import { GoogleGenAI } from "@google/genai";
 
 interface TicketSystemProps {
   userRole?: UserRole;
+  marketId?: string;
 }
 
-export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.USER }) => {
+export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.USER, marketId }) => {
   const [tickets, setTickets] = useState<Ticket[]>(MOCK_TICKETS);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [aiSummary, setAiSummary] = useState<string>('');
@@ -26,18 +27,33 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
     priority: TicketPriority.MEDIUM
   });
 
-  // RBAC: Admins see all. Others see tickets created by their Role (Mock logic)
-  const isAdmin = userRole === UserRole.SUPER_ADMIN || userRole === UserRole.MARKET_ADMIN;
+  // RBAC Permissions
+  const isSuperAdmin = userRole === UserRole.SUPER_ADMIN;
+  const isMarketAdmin = userRole === UserRole.MARKET_ADMIN;
+  // Admin privilege generally allows action, but scope is defined by marketId
+  const canManageTickets = isSuperAdmin || isMarketAdmin;
   
   const filteredTickets = tickets.filter(t => {
-     const matchesRole = isAdmin || t.createdByRole === userRole;
+     // 1. Scope Filter: 
+     // Super Admin sees all.
+     // Market Admin sees only their market.
+     // Users/Vendors see only their own tickets.
+     if (isSuperAdmin) {
+         // See all
+     } else if (isMarketAdmin) {
+         if (t.marketId !== marketId) return false;
+     } else {
+         if (t.createdByRole !== userRole) return false; // Simplified mock logic - ideally compare user ID
+     }
+
+     // 2. Search Filter
      const term = searchTerm.toLowerCase();
      const matchesSearch = !term || 
         t.title.toLowerCase().includes(term) || 
         (t.description && t.description.toLowerCase().includes(term)) ||
         t.id.toLowerCase().includes(term);
 
-     return matchesRole && matchesSearch;
+     return matchesSearch;
   });
 
   const selectedTicket = filteredTickets.find(t => t.id === selectedTicketId) || filteredTickets[0];
@@ -97,7 +113,8 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
         priority: newTicket.priority,
         status: 'OPEN',
         createdAt: new Date().toISOString(),
-        createdByRole: userRole
+        createdByRole: userRole,
+        marketId: marketId // Assign ticket to current user's market context
     };
 
     setTickets([created, ...tickets]);
@@ -179,7 +196,7 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
                  </div>
               </div>
               
-              {isAdmin && (
+              {canManageTickets && (
                 <button 
                     onClick={() => generateSummary(selectedTicket.description || selectedTicket.title)}
                     disabled={isLoadingSummary}
@@ -193,7 +210,7 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
             
             <div className="p-6 flex-1 overflow-y-auto">
                {/* AI Summary Section - Admin Only */}
-               {(aiSummary && isAdmin) && (
+               {(aiSummary && canManageTickets) && (
                  <div className="mb-6 bg-gradient-to-r from-purple-50 to-white p-4 rounded-lg border border-purple-100 animate-in fade-in slide-in-from-top-2">
                    <div className="flex items-center gap-2 mb-2 text-purple-700 font-medium text-sm">
                       <Bot size={16} />
@@ -235,7 +252,7 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
             </div>
 
             <div className="p-4 border-t border-slate-200 bg-slate-50">
-               {isAdmin ? (
+               {canManageTickets ? (
                 <div className="flex gap-2">
                     <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">
                     <Paperclip size={20} />

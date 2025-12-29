@@ -1,16 +1,31 @@
 import React, { useState } from 'react';
 import { MOCK_CCTV, MOCK_POWER, MOCK_STAFF } from '../constants';
-import { Activity, Camera, Zap, Users, UserCircle, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Activity, Camera, Zap, Users, UserCircle, CheckCircle, XCircle, AlertTriangle, MapPin } from 'lucide-react';
+import { UserRole } from '../types';
 
-export const AssetManagementModule: React.FC = () => {
+interface AssetManagementModuleProps {
+  userRole?: UserRole;
+  marketId?: string;
+}
+
+export const AssetManagementModule: React.FC<AssetManagementModuleProps> = ({ userRole, marketId }) => {
   const [activeTab, setActiveTab] = useState<'CCTV' | 'POWER' | 'STAFF'>('CCTV');
+
+  // RBAC Filtering Logic
+  const isSuperAdmin = userRole === UserRole.SUPER_ADMIN;
+
+  const filteredCCTV = MOCK_CCTV.filter(item => isSuperAdmin || item.marketId === marketId);
+  const filteredPower = MOCK_POWER.filter(item => isSuperAdmin || item.marketId === marketId);
+  const filteredStaff = MOCK_STAFF.filter(item => isSuperAdmin || item.marketId === marketId);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Asset & Staff Management</h2>
-          <p className="text-slate-500 text-sm">Monitor facility hardware and operational staff.</p>
+          <p className="text-slate-500 text-sm">
+             {isSuperAdmin ? 'Global Infrastructure Overview' : 'Local Market Assets & Staff'}
+          </p>
         </div>
         
         <div className="bg-slate-100 p-1 rounded-lg flex">
@@ -37,7 +52,9 @@ export const AssetManagementModule: React.FC = () => {
 
       {activeTab === 'CCTV' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {MOCK_CCTV.map(cam => (
+            {filteredCCTV.length === 0 ? (
+                <div className="col-span-full py-10 text-center text-slate-400">No CCTV cameras assigned to this sector.</div>
+            ) : filteredCCTV.map(cam => (
                 <div key={cam.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                     <div className="aspect-video bg-black relative flex items-center justify-center group">
                         {cam.status === 'OFFLINE' ? (
@@ -56,6 +73,11 @@ export const AssetManagementModule: React.FC = () => {
                                   <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div> REC
                               </div>
                             </>
+                        )}
+                        {isSuperAdmin && (
+                            <div className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded">
+                                Market ID: {cam.marketId}
+                            </div>
                         )}
                     </div>
                     <div className="p-4">
@@ -82,7 +104,7 @@ export const AssetManagementModule: React.FC = () => {
 
       {activeTab === 'POWER' && (
           <div className="space-y-4">
-              {MOCK_POWER.map(zone => (
+              {filteredPower.map(zone => (
                   <div key={zone.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
                       <div className="flex items-center gap-4">
                           <div className={`p-4 rounded-full ${zone.status === 'STABLE' ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
@@ -90,7 +112,7 @@ export const AssetManagementModule: React.FC = () => {
                           </div>
                           <div>
                               <h4 className="font-bold text-slate-800 text-lg">{zone.floor}</h4>
-                              <p className="text-sm text-slate-500">Zone ID: {zone.id}</p>
+                              <p className="text-sm text-slate-500">Zone ID: {zone.id} {isSuperAdmin ? `(${zone.marketId})` : ''}</p>
                           </div>
                       </div>
                       
@@ -128,12 +150,13 @@ export const AssetManagementModule: React.FC = () => {
                           <th className="px-6 py-4">Staff Member</th>
                           <th className="px-6 py-4">Role</th>
                           <th className="px-6 py-4">Shift</th>
+                          {isSuperAdmin && <th className="px-6 py-4">Location</th>}
                           <th className="px-6 py-4">Contact</th>
                           <th className="px-6 py-4">Status</th>
                       </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                      {MOCK_STAFF.map(staff => (
+                      {filteredStaff.map(staff => (
                           <tr key={staff.id} className="hover:bg-slate-50">
                               <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-3">
                                   <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
@@ -145,6 +168,11 @@ export const AssetManagementModule: React.FC = () => {
                                   <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-bold">{staff.role}</span>
                               </td>
                               <td className="px-6 py-4 text-slate-600">{staff.shift}</td>
+                              {isSuperAdmin && (
+                                  <td className="px-6 py-4 text-slate-600 flex items-center gap-1">
+                                      <MapPin size={12}/> {staff.marketId}
+                                  </td>
+                              )}
                               <td className="px-6 py-4 font-mono text-xs">{staff.phone}</td>
                               <td className="px-6 py-4">
                                   {staff.status === 'ON_DUTY' ? (

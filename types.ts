@@ -7,6 +7,9 @@ export enum UserRole {
   USER = 'USER'
 }
 
+// Alias for compatibility with new Auth components
+export type Role = UserRole;
+
 export enum ApplicationStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
@@ -34,6 +37,23 @@ export interface User {
   role: UserRole;
   avatarUrl?: string;
   kycStatus?: ApplicationStatus;
+  marketId?: string; // RBAC: Links admin/staff to a specific market
+}
+
+// Extended interface for the new App.tsx logic
+export interface UserProfile extends User {
+  isVerified?: boolean;
+  mfaEnabled?: boolean;
+  profileImage?: string;
+  settings?: {
+    lowStockThreshold?: number;
+    criticalStockThreshold?: number;
+    notifications?: {
+      email: boolean;
+      browser: boolean;
+      sms: boolean;
+    }
+  };
 }
 
 export interface Market {
@@ -43,6 +63,8 @@ export interface Market {
   type: 'WHOLESALE' | 'RETAIL' | 'MIXED';
   ownership: 'PUBLIC' | 'PRIVATE' | 'PPP';
   establishmentDate: string; // ISO Date string
+  capacity?: number;
+  primaryProducts?: string[];
 }
 
 export interface City {
@@ -57,11 +79,19 @@ export interface Vendor {
   marketId: string;
   status: 'ACTIVE' | 'SUSPENDED';
   rentDue: number;
+  vatDue?: number;
   gender: 'MALE' | 'FEMALE';
   age: number;
   productsCount: number;
   kycVerified: boolean;
   notes?: string;
+  joinedDate?: string;
+  city?: string;
+  market?: string;
+  level?: string;
+  section?: string;
+  storeType?: string;
+  ownershipType?: string;
 }
 
 export interface Supplier {
@@ -72,6 +102,22 @@ export interface Supplier {
   kycVerified: boolean;
   categories: string[];
   trustScore?: number; // AI Generated
+  email?: string;
+  status?: string;
+  warehouseLocation?: string;
+  suppliedItemsCount?: number;
+  walletBalance?: number;
+  totalRevenue?: number;
+  pendingPayouts?: number;
+  showcase?: SupplierShowcaseItem[];
+}
+
+export interface SupplierShowcaseItem {
+  id: string;
+  name: string;
+  description: string;
+  priceRange: string;
+  category: string;
 }
 
 export interface Requisition {
@@ -83,6 +129,12 @@ export interface Requisition {
   status: 'OPEN' | 'BIDDING' | 'FULFILLED' | 'CANCELLED';
   createdAt: string;
   deadline: string;
+  budget?: number;
+  description?: string;
+  bids?: Bid[];
+  itemName?: string; // For compatibility
+  quantity?: number; // For compatibility
+  unit?: string; // For compatibility
 }
 
 export interface Bid {
@@ -107,6 +159,13 @@ export interface Ticket {
   summary?: string; // AI Generated summary
   createdAt: string;
   createdByRole?: UserRole; // To filter for non-admins
+  creatorId?: string;
+  creatorName?: string;
+  marketId?: string; // RBAC: Ticket belongs to a market context
+  attachmentUrl?: string;
+  assetType?: string;
+  assignedToId?: string;
+  assignedToName?: string;
 }
 
 export interface Transaction {
@@ -114,10 +173,15 @@ export interface Transaction {
   entityId?: string; // Link to Vendor or Supplier ID
   date: string;
   amount: number;
-  type: 'RENT' | 'VAT' | 'TAX' | 'SUPPLY_PAYMENT' | 'INCOME' | 'GATE_FEE' | 'EXPENDITURE' | 'WITHDRAWAL';
-  status: 'PAID' | 'PENDING' | 'OVERDUE' | 'ESCROW';
-  method: 'MTN_MOMO' | 'AIRTEL_MONEY' | 'BANK' | 'CASH' | 'WALLET';
+  taxAmount?: number; // VAT or Levy portion
+  netAmount?: number; // Amount without tax
+  type: 'RENT' | 'VAT' | 'TAX' | 'SUPPLY_PAYMENT' | 'INCOME' | 'GATE_FEE' | 'EXPENDITURE' | 'WITHDRAWAL' | 'SALE_REVENUE' | 'SERVICE_CHARGE' | 'FINE' | 'UTILITY' | 'LEVY';
+  status: 'PAID' | 'PENDING' | 'OVERDUE' | 'ESCROW' | 'SUCCESS' | 'FAILED' | 'FLAGGED' | 'REMITTED';
+  method: 'MTN_MOMO' | 'AIRTEL_MONEY' | 'BANK' | 'CASH' | 'WALLET' | 'CARD' | 'VISA';
   reference?: string;
+  referenceId?: string;
+  direction?: 'IN' | 'OUT';
+  verifiedBy?: string;
 }
 
 export interface Vehicle {
@@ -135,7 +199,7 @@ export interface Vehicle {
 export interface ParkingSlot {
   id: string;
   number: string;
-  zone: 'A' | 'B' | 'C'; // A=Trucks, B=Cars, C=Bikes
+  zone: 'A' | 'B' | 'C' | 'ALPHA' | 'BETA' | 'GAMMA'; // A=Trucks, B=Cars, C=Bikes
   status: 'AVAILABLE' | 'OCCUPIED' | 'RESERVED';
   vehiclePlate?: string;
 }
@@ -147,6 +211,10 @@ export interface Product {
   stock: number;
   price: number;
   sku: string;
+  description?: string;
+  vendor?: string;
+  status?: 'HEALTHY' | 'LOW' | 'CRITICAL' | 'PENDING_APPROVAL';
+  isFeatured?: boolean;
 }
 
 export interface Sale {
@@ -154,6 +222,7 @@ export interface Sale {
   date: string;
   items: { productId: string; name: string; qty: number; price: number }[];
   totalAmount: number;
+  taxAmount?: number;
   paymentMethod: 'CASH' | 'MOMO' | 'CARD';
 }
 
@@ -164,8 +233,12 @@ export interface GateToken {
   entityName: string; // Vehicle Plate or Person Name
   status: 'ACTIVE' | 'USED' | 'EXPIRED';
   generatedAt: string;
+  exitAt?: string; // For duration calc
+  durationMinutes?: number; 
   generatedBy: string;
-  associatedFee?: number;
+  associatedFee?: number; // Total Fee
+  taxAmount?: number; // Calculated VAT
+  overstayFee?: number;
   paymentStatus?: 'PAID' | 'PENDING';
 }
 
@@ -178,12 +251,33 @@ export interface Notification {
   read: boolean;
 }
 
+export interface OrderItem {
+  id: string;
+  productId: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+export interface Order {
+  id: string;
+  customerName: string;
+  vendorName: string;
+  items: OrderItem[];
+  total: number;
+  status: 'PENDING' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED';
+  createdAt: string;
+  type: 'INCOMING' | 'OUTGOING';
+  tags?: string[];
+}
+
 // --- New Types for Asset Management ---
 
 export interface AssetCCTV {
   id: string;
   name: string;
   location: string;
+  marketId: string; // RBAC
   status: 'ONLINE' | 'OFFLINE' | 'RECORDING';
   lastMaintenance: string;
 }
@@ -191,6 +285,7 @@ export interface AssetCCTV {
 export interface PowerZone {
   id: string;
   floor: string;
+  marketId: string; // RBAC
   status: 'STABLE' | 'OUTAGE' | 'FLUCTUATING';
   load: number; // Percentage
 }
@@ -202,4 +297,35 @@ export interface StaffMember {
   shift: 'MORNING' | 'AFTERNOON' | 'NIGHT';
   status: 'ON_DUTY' | 'OFF_DUTY' | 'LEAVE';
   phone: string;
+  marketId: string;
+}
+
+export interface StockLog {
+  id: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  vendor: string;
+  type: 'INBOUND' | 'OUTBOUND';
+  timestamp: string;
+  inspector: string;
+  status: 'VERIFIED' | 'FLAGGED' | 'PENDING';
+}
+
+export interface ManifestItem {
+  id: string;
+  vendorId: string;
+  vendorName: string;
+  itemName: string;
+  qty: number;
+  estPrice: number;
+  paid: boolean;
+}
+
+export interface BridgeLogistics {
+  id: string;
+  dispatchDate: string;
+  status: 'PREPARING' | 'EN_ROUTE' | 'COMPLETED';
+  capacity: number;
+  items: ManifestItem[];
 }

@@ -1,20 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ApplicationStatus } from '../types';
+import { VendorApplicationForm } from './VendorApplicationForm';
+import { MarketAdminApplicationForm } from './MarketAdminApplicationForm';
+import { ApiService } from '../services/api';
 import { 
-  FileText, 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
-  Building2, 
-  MapPin, 
-  Calendar,
-  ChevronRight,
-  AlertCircle
+  FileText, Clock, CheckCircle2, XCircle, Building2, MapPin, Calendar,
+  AlertCircle, Plus, Store, Briefcase, Loader2
 } from 'lucide-react';
 
 export const UserApplications: React.FC = () => {
-  // Mock Data for User Applications
-  const applications = [
+  const [view, setView] = useState<'LIST' | 'NEW_VENDOR' | 'NEW_ADMIN'>('LIST');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Mock Data for User Applications (In real app, fetch via useEffect)
+  const [applications, setApplications] = useState([
     {
       id: 'app-001',
       type: 'VENDOR_ACCESS',
@@ -29,22 +28,47 @@ export const UserApplications: React.FC = () => {
         { label: 'KYC Verification', status: 'PENDING', date: '-' },
         { label: 'Final Approval', status: 'PENDING', date: '-' },
       ]
-    },
-    {
-      id: 'app-002',
-      type: 'SUPPLIER_ACCESS',
-      marketName: 'Owino Market',
-      location: 'Kampala',
-      submittedAt: '2023-09-15',
-      status: ApplicationStatus.REJECTED,
-      remarks: 'Application rejected due to missing tax clearance certificate.',
-      steps: [
-        { label: 'Submission', status: 'COMPLETED', date: 'Sep 15, 09:30 AM' },
-        { label: 'Document Review', status: 'FAILED', date: 'Sep 16, 02:00 PM' },
-        { label: 'Final Decision', status: 'COMPLETED', date: 'Sep 16, 02:00 PM' },
-      ]
     }
-  ];
+  ]);
+
+  const handleCreateApplication = async (data: any, type: 'VENDOR' | 'ADMIN') => {
+    setIsSubmitting(true);
+    try {
+        const formData = new FormData();
+        formData.append('type', type);
+        Object.keys(data).forEach(key => {
+            if (key !== 'kycFile') formData.append(key, data[key]);
+        });
+        // Append File safely
+        if (data.kycFile) formData.append('kycDocument', data.kycFile);
+
+        // API Call
+        await ApiService.applications.submit(formData);
+
+        // Optimistic UI Update (Mocking the response structure)
+        const newApp = {
+            id: `app-${Date.now()}`,
+            type: type === 'VENDOR' ? 'VENDOR_ACCESS' : 'MARKET_ADMIN_ACCESS',
+            marketName: 'Pending Assignment',
+            location: 'Kampala',
+            submittedAt: new Date().toISOString().split('T')[0],
+            status: ApplicationStatus.PENDING,
+            remarks: 'Application submitted successfully. Awaiting administrative review.',
+            steps: [
+                { label: 'Submission', status: 'COMPLETED', date: 'Just now' },
+                { label: 'Document Review', status: 'PENDING', date: '-' },
+                { label: 'KYC Verification', status: 'PENDING', date: '-' },
+                { label: 'Final Approval', status: 'PENDING', date: '-' },
+            ]
+        };
+        setApplications([newApp, ...applications]);
+        setView('LIST');
+    } catch (err) {
+        alert("Application submission failed. Please try again.");
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
 
   const getStatusColor = (status: ApplicationStatus) => {
     switch (status) {
@@ -62,11 +86,69 @@ export const UserApplications: React.FC = () => {
     }
   };
 
+  if (view === 'NEW_VENDOR') {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <h2 className="text-2xl font-bold text-slate-900 mb-6">New Vendor Application</h2>
+        {isSubmitting ? (
+            <div className="text-center py-20">
+                <Loader2 className="animate-spin mx-auto mb-4" size={40} />
+                <p>Submitting your documents securely...</p>
+            </div>
+        ) : (
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <VendorApplicationForm 
+                onCancel={() => setView('LIST')}
+                onSubmit={(data) => handleCreateApplication(data, 'VENDOR')}
+            />
+            </div>
+        )}
+      </div>
+    );
+  }
+
+  if (view === 'NEW_ADMIN') {
+    return (
+        <div className="max-w-2xl mx-auto">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Market Admin Application</h2>
+            {isSubmitting ? (
+                <div className="text-center py-20">
+                    <Loader2 className="animate-spin mx-auto mb-4" size={40} />
+                    <p>Verifying domain credentials...</p>
+                </div>
+            ) : (
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <MarketAdminApplicationForm
+                    onCancel={() => setView('LIST')}
+                    onSubmit={(data) => handleCreateApplication(data, 'ADMIN')}
+                />
+                </div>
+            )}
+        </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">My Applications</h2>
-        <p className="text-slate-500 text-sm">Track the status of your role access requests.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">My Applications</h2>
+          <p className="text-slate-500 text-sm">Track the status of your role access requests.</p>
+        </div>
+        <div className="flex gap-2">
+            <button 
+            onClick={() => setView('NEW_ADMIN')}
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-colors text-sm"
+            >
+            <Briefcase size={16} /> Market Admin
+            </button>
+            <button 
+            onClick={() => setView('NEW_VENDOR')}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex items-center gap-2 shadow-sm transition-colors text-sm"
+            >
+            <Plus size={16} /> Vendor Access
+            </button>
+        </div>
       </div>
 
       <div className="grid gap-6">
@@ -76,7 +158,7 @@ export const UserApplications: React.FC = () => {
             <div className="p-6 border-b border-slate-100 flex flex-wrap justify-between items-start gap-4">
               <div className="flex gap-4">
                 <div className="p-3 bg-blue-50 rounded-lg text-blue-600 h-fit">
-                  <FileText size={24} />
+                  {app.type === 'VENDOR_ACCESS' ? <Store size={24} /> : <FileText size={24} />}
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">

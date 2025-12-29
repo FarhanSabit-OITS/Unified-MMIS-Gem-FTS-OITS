@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { Vendor, UserRole, Transaction } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Vendor, UserRole } from '../types';
 import { MOCK_VENDORS, CITIES, MARKETS, MOCK_TRANSACTIONS } from '../constants';
+import { ApiService } from '../services/api';
+import { PaymentGateway } from './PaymentGateway';
 import { 
   Filter, 
   Search, 
   MoreHorizontal, 
-  Eye, 
   QrCode, 
   Ban, 
   CheckCircle, 
@@ -14,22 +15,25 @@ import {
   Power,
   CreditCard,
   Download,
-  AlertOctagon,
   X,
   History,
   ArrowUpDown,
   FileText,
   Save,
-  AlertTriangle
+  AlertTriangle,
+  Trash2
 } from 'lucide-react';
+import { Button } from './ui/Button';
 
 interface VendorModuleProps {
   userRole?: UserRole;
+  currentUserId?: string;
 }
 
-export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.USER }) => {
+export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.USER, currentUserId }) => {
   // Use local state initialized with MOCK data to allow updates
   const [vendors, setVendors] = useState<Vendor[]>(MOCK_VENDORS);
+  const [isLoading, setIsLoading] = useState(false);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
@@ -41,6 +45,9 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [activeModalTab, setActiveModalTab] = useState<'OVERVIEW' | 'DUES'>('OVERVIEW');
   const [qrModalVendor, setQrModalVendor] = useState<Vendor | null>(null);
+  
+  // Payment
+  const [paymentVendor, setPaymentVendor] = useState<{ id: string, amount: number, name: string } | null>(null);
 
   // Notes Editing State
   const [isEditingNote, setIsEditingNote] = useState(false);
@@ -52,6 +59,27 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   const [duesSearchTerm, setDuesSearchTerm] = useState('');
 
   const isAdmin = userRole === UserRole.SUPER_ADMIN || userRole === UserRole.MARKET_ADMIN;
+
+  // FETCH VENDORS FROM BACKEND
+  useEffect(() => {
+    const fetchVendors = async () => {
+      setIsLoading(true);
+      try {
+        // Fix: Use correct API method path
+        const response = await ApiService.vendors.getAll();
+        if (response.data && Array.isArray(response.data)) {
+          setVendors(response.data);
+        }
+      } catch (error) {
+        console.warn("Failed to fetch vendors from API, using mock data.");
+        // vendors state already has MOCK_VENDORS as initial value
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVendors();
+  }, []);
 
   const filteredVendors = vendors.filter(v => {
     const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -96,16 +124,17 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   
   const logAuditAction = (action: string, vendorName: string, details: string) => {
     const timestamp = new Date().toISOString();
-    // Simulate logging to a backend service
-    console.log(`[AUDIT LOG] | Time: ${timestamp} | Admin: ${userRole} | Action: ${action} | Target: ${vendorName} | Details: ${details}`);
+    console.log(`[AUDIT LOG] | Time: ${timestamp} | AdminID: ${currentUserId || 'Unknown'} | Role: ${userRole} | Action: ${action} | Target: ${vendorName} | Details: ${details}`);
   };
 
   const handleToggleStatus = (vendor: Vendor, e: React.MouseEvent) => {
     e.stopPropagation();
-    const newStatus = vendor.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+    const newStatus: Vendor['status'] = vendor.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
     
     if (confirm(`Are you sure you want to change status of ${vendor.name} to ${newStatus}?`)) {
-        setVendors(prev => prev.map(v => v.id === vendor.id ? { ...v, status: newStatus } : v));
+        // Optimistic UI Update
+        const updatedVendors = vendors.map(v => v.id === vendor.id ? { ...v, status: newStatus } : v);
+        setVendors(updatedVendors);
         logAuditAction('STATUS_CHANGE', vendor.name, `Changed status from ${vendor.status} to ${newStatus}`);
     }
   };
@@ -114,17 +143,24 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
     e.stopPropagation();
     
     if (action === 'MARK_PAID') {
-        if(confirm(`Confirm payment clearance for ${vendorName}?`)) {
-            setVendors(prev => prev.map(v => {
-                if (v.id === vendorId) return { ...v, rentDue: 0 };
-                return v;
-            }));
-            logAuditAction('DUES_CLEARED', vendorName, 'Marked outstanding rent as PAID');
-        }
+        // Instead of instant clear, trigger payment gateway flow
+        const v = vendors.find(ven => ven.id === vendorId);
+        if(v) setPaymentVendor({ id: v.id, amount: v.rentDue, name: v.name });
     } else if (action === 'FLAG_AUDIT') {
-        alert(`Vendor ${vendorName} flagged for audit.`);
+        alert(`Vendor ${vendorName} flagged for deep-dive audit. Notification sent to Compliance Team.`);
         logAuditAction('AUDIT_INITIATED', vendorName, 'Flagged vendor account for detailed financial audit');
     }
+  };
+
+  const handleRentPaymentSuccess = (txId: string, method: string) => {
+      if(!paymentVendor) return;
+      
+      setVendors(prev => prev.map(v => {
+          if (v.id === paymentVendor.id) return { ...v, rentDue: 0 };
+          return v;
+      }));
+      setPaymentVendor(null);
+      logAuditAction('RENT_PAYMENT', paymentVendor.name, `Rent cleared via ${method}. TX: ${txId}`);
   };
 
   const handleShowQR = (vendor: Vendor, e: React.MouseEvent) => {
@@ -141,7 +177,6 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
 
   const handleSaveNote = () => {
       if (!selectedVendor) return;
-      
       const updatedVendors = vendors.map(v => v.id === selectedVendor.id ? { ...v, notes: noteDraft } : v);
       setVendors(updatedVendors);
       setSelectedVendor({ ...selectedVendor, notes: noteDraft });
@@ -151,6 +186,15 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
 
   return (
     <div className="space-y-6">
+      {paymentVendor && (
+          <PaymentGateway 
+             amount={paymentVendor.amount}
+             description={`Rent Payment for ${paymentVendor.name}`}
+             onClose={() => setPaymentVendor(null)}
+             onSuccess={handleRentPaymentSuccess}
+          />
+      )}
+
       {/* Filters Toolbar */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-center justify-between">
         <div className="flex gap-4 flex-1 overflow-x-auto pb-1 sm:pb-0">
@@ -209,9 +253,9 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
         </div>
         
         {isAdmin && (
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition shadow-sm shadow-blue-200 whitespace-nowrap">
+          <Button>
             + Add Vendor
-          </button>
+          </Button>
         )}
       </div>
 
@@ -231,7 +275,9 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredVendors.map(vendor => (
+              {isLoading ? (
+                  <tr><td colSpan={7} className="text-center py-8">Loading Vendor Database...</td></tr>
+              ) : filteredVendors.map(vendor => (
                 <tr key={vendor.id} className="hover:bg-slate-50 transition-colors group cursor-pointer" onClick={() => handleOpenVendor(vendor)}>
                   <td className="px-6 py-4">
                     <div className="font-medium text-slate-900">{vendor.name}</div>
@@ -269,25 +315,25 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                       <div className="flex items-center justify-center gap-2">
                          <button 
                             onClick={(e) => handleToggleDues(vendor.id, vendor.name, 'MARK_PAID', e)}
-                            className={`p-1.5 rounded transition ${vendor.rentDue === 0 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-green-600 hover:bg-green-50'}`}
+                            className={`p-1.5 rounded-lg transition-all border ${vendor.rentDue === 0 ? 'text-slate-300 border-slate-100 cursor-not-allowed' : 'text-slate-500 border-slate-200 hover:text-green-600 hover:bg-green-50 hover:border-green-200'}`}
                             title="Mark Dues as Paid"
                             disabled={vendor.rentDue === 0}
                          >
-                           <CreditCard size={16} />
+                           <CreditCard size={14} />
                          </button>
                          <button 
                             onClick={(e) => handleToggleDues(vendor.id, vendor.name, 'FLAG_AUDIT', e)}
-                            className="p-1.5 hover:bg-orange-50 rounded text-slate-500 hover:text-orange-600" 
-                            title="Flag for Audit"
+                            className="p-1.5 rounded-lg transition-all border border-slate-200 text-slate-500 hover:text-orange-600 hover:bg-orange-50 hover:border-orange-200" 
+                            title="Initiate Deep-Dive Audit"
                          >
-                           <Gavel size={16} />
+                           <Gavel size={14} />
                          </button>
                          <button 
                             onClick={(e) => handleToggleStatus(vendor, e)}
-                            className={`p-1.5 rounded transition ${vendor.status === 'ACTIVE' ? 'text-slate-500 hover:text-red-600 hover:bg-red-50' : 'text-slate-500 hover:text-green-600 hover:bg-green-50'}`} 
-                            title="Toggle Active Status"
+                            className={`p-1.5 rounded-lg transition-all border ${vendor.status === 'ACTIVE' ? 'border-slate-200 text-slate-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200' : 'border-slate-200 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200'}`} 
+                            title={vendor.status === 'ACTIVE' ? "Suspend Vendor" : "Activate Vendor"}
                          >
-                           <Power size={16} />
+                           <Power size={14} />
                          </button>
                       </div>
                     </td>
@@ -303,7 +349,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                   </td>
                 </tr>
               ))}
-              {filteredVendors.length === 0 && (
+              {!isLoading && filteredVendors.length === 0 && (
                 <tr>
                   <td colSpan={isAdmin ? 7 : 6} className="px-6 py-12 text-center text-slate-400">
                     No vendors found matching your filters.
@@ -332,21 +378,21 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
             {/* Modal Tabs */}
             <div className="flex border-b border-slate-100 px-6 gap-6 shrink-0">
                 <button 
-                    onClick={() => setActiveModalTab('OVERVIEW')}
-                    className={`py-3 text-sm font-bold border-b-2 transition-colors ${activeModalTab === 'OVERVIEW' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+                    onClick={() => setActiveTab('OVERVIEW')}
+                    className={`py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'OVERVIEW' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
                 >
                     Overview
                 </button>
                 <button 
-                    onClick={() => setActiveModalTab('DUES')}
-                    className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeModalTab === 'DUES' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+                    onClick={() => setActiveTab('DUES')}
+                    className={`py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'DUES' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
                 >
                     <History size={14} /> Dues History
                 </button>
             </div>
 
             <div className="p-6 space-y-6 overflow-y-auto">
-               {activeModalTab === 'OVERVIEW' ? (
+               {activeTab === 'OVERVIEW' ? (
                    <>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 bg-slate-50 rounded-lg">
@@ -506,9 +552,9 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                 <p className="text-xs text-slate-400 mb-6 font-mono break-all">
                     mmis://vendor/{qrModalVendor.id}
                 </p>
-                <button className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg flex items-center justify-center gap-2">
+                <Button className="w-full flex items-center justify-center gap-2">
                     <Download size={18} /> Download Code
-                </button>
+                </Button>
             </div>
         </div>
       )}
