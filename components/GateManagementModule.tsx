@@ -197,10 +197,10 @@ export const GateManagementModule: React.FC = () => {
              <h2 className="text-2xl font-bold text-slate-900">Gate & Logistics Terminal</h2>
              <p className="text-slate-500 text-sm">Manage vehicle flow and stock manifest verification.</p>
           </div>
-          <div className="flex bg-slate-100 p-1 rounded-lg">
-             <button onClick={() => setActiveTab('TERMINAL')} className={`px-4 py-2 text-sm font-bold rounded-md transition ${activeTab === 'TERMINAL' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}>Vehicle Gate</button>
-             <button onClick={() => setActiveTab('STOCK')} className={`px-4 py-2 text-sm font-bold rounded-md transition ${activeTab === 'STOCK' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}>Stock Counter</button>
-             <button onClick={() => setActiveTab('REGISTRY')} className={`px-4 py-2 text-sm font-bold rounded-md transition ${activeTab === 'REGISTRY' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}>Logs</button>
+          <div className="flex bg-slate-100 p-1 rounded-lg overflow-x-auto max-w-full">
+             <button onClick={() => setActiveTab('TERMINAL')} className={`px-4 py-2 text-sm font-bold rounded-md transition whitespace-nowrap ${activeTab === 'TERMINAL' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}>Vehicle Gate</button>
+             <button onClick={() => setActiveTab('STOCK')} className={`px-4 py-2 text-sm font-bold rounded-md transition whitespace-nowrap ${activeTab === 'STOCK' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}>Stock Counter</button>
+             <button onClick={() => setActiveTab('REGISTRY')} className={`px-4 py-2 text-sm font-bold rounded-md transition whitespace-nowrap ${activeTab === 'REGISTRY' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}>Logs</button>
           </div>
        </div>
 

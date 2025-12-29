@@ -180,8 +180,8 @@ export const UserApplications: React.FC = () => {
             </div>
 
             {/* Progress Tracker */}
-            <div className="p-6 bg-slate-50/50">
-              <div className="relative flex justify-between mb-8">
+            <div className="p-6 bg-slate-50/50 overflow-x-auto">
+              <div className="relative flex justify-between mb-8 min-w-[600px]">
                 {/* Connecting Line */}
                 <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-200 -translate-y-1/2 z-0"></div>
                 
