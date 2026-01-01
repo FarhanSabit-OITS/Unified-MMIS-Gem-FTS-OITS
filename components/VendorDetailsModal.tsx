@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Vendor, Transaction, TicketPriority, TicketContext, UserRole } from '../types';
+import { Vendor, Transaction, UserRole } from '../types';
 import { MOCK_TRANSACTIONS } from '../constants';
 import { 
   X, User, History, FileText, StickyNote, AlertTriangle, Briefcase, 
   Building2, MapPin, Phone, Mail, QrCode, Ban, Search, ArrowUpDown, 
-  Banknote, Upload, Download, Save, ShieldAlert, CreditCard, Gavel, Power
+  Banknote, Upload, Download, Save, ShieldAlert, CreditCard, Gavel, Power,
+  Layers, Store, Tag, UserCheck
 } from 'lucide-react';
 
 interface VendorDetailsModalProps {
@@ -61,8 +62,6 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
   };
 
   const getMarketName = (id: string) => {
-      // Simple mock look up or pass markets as prop if needed. 
-      // For isolation, we can just display the ID or generic text if props aren't drilling deep.
       return id === 'm1' ? 'Nakasero Market' : id === 'm2' ? 'Owino Market' : 'Market';
   };
 
@@ -154,15 +153,46 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
                     </div>
                 </div>
 
+                {/* Extended Details (New) */}
+                <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 grid grid-cols-2 gap-y-4 gap-x-2">
+                    <div className="flex items-center gap-3">
+                        <div className="p-1.5 bg-white text-slate-500 rounded border border-slate-200 shadow-sm"><UserCheck size={14} /></div>
+                        <div>
+                            <p className="text-[10px] text-slate-400 uppercase font-bold">Gender & Age</p>
+                            <p className="text-sm font-semibold text-slate-800">{vendor.gender} • {vendor.age} yrs</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="p-1.5 bg-white text-slate-500 rounded border border-slate-200 shadow-sm"><Store size={14} /></div>
+                        <div>
+                            <p className="text-[10px] text-slate-400 uppercase font-bold">Store Type</p>
+                            <p className="text-sm font-semibold text-slate-800">{vendor.storeType || 'Retail'}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="p-1.5 bg-white text-slate-500 rounded border border-slate-200 shadow-sm"><Layers size={14} /></div>
+                        <div>
+                            <p className="text-[10px] text-slate-400 uppercase font-bold">Level & Section</p>
+                            <p className="text-sm font-semibold text-slate-800">{vendor.level || 'Ground'} • {vendor.section || 'General'}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="p-1.5 bg-white text-slate-500 rounded border border-slate-200 shadow-sm"><Tag size={14} /></div>
+                        <div>
+                            <p className="text-[10px] text-slate-400 uppercase font-bold">Ownership</p>
+                            <p className="text-sm font-semibold text-slate-800">{vendor.ownershipType || 'Sole Prop.'}</p>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Location & Contact */}
                 <div className="bg-white border border-slate-100 rounded-lg p-4 shadow-sm space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="flex items-start gap-3">
                             <div className="p-2 bg-slate-100 text-slate-600 rounded-lg mt-0.5"><Building2 size={16} /></div>
                             <div className="flex flex-col">
-                                <span className="text-xs text-slate-500">Shop</span>
+                                <span className="text-xs text-slate-500">Shop Number</span>
                                 <span className="text-sm font-bold text-slate-900">{vendor.shopNumber}</span>
-                                <span className="text-[10px] text-slate-400">{vendor.level || 'Ground Floor'}</span>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">

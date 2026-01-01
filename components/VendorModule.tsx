@@ -197,7 +197,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
         gender: newVendorData.gender,
         age: Number(newVendorData.age) || 30,
         productsCount: 0,
-        kycVerified: false, // Starts unverified until admin actually checks docs (flow simulation)
+        kycVerified: newVendorData.kycVerified, // Use form data state
         notes: 'New registration pending final review.',
         storeType: newVendorData.storeType,
         ownershipType: newVendorData.ownershipType,
@@ -556,7 +556,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                         {/* Section 3: Financials & Status */}
                         <div>
                             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4 flex items-center gap-2"><DollarSign size={14}/> Financials & Status</h4>
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-4 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1">Rent Due</label>
                                     <input type="number" className="w-full px-3 py-2 border rounded-lg text-sm" value={newVendorData.rentDue} onChange={e => setNewVendorData({...newVendorData, rentDue: parseFloat(e.target.value)})} />
@@ -570,6 +570,17 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                                     <select className="w-full px-3 py-2 border rounded-lg text-sm bg-white" value={newVendorData.status} onChange={e => setNewVendorData({...newVendorData, status: e.target.value as any})}>
                                         <option value="ACTIVE">Active</option>
                                         <option value="SUSPENDED">Suspended</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">KYC Status</label>
+                                    <select 
+                                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white" 
+                                        value={newVendorData.kycVerified ? 'VERIFIED' : 'PENDING'} 
+                                        onChange={e => setNewVendorData({...newVendorData, kycVerified: e.target.value === 'VERIFIED'})}
+                                    >
+                                        <option value="PENDING">Pending</option>
+                                        <option value="VERIFIED">Verified</option>
                                     </select>
                                 </div>
                             </div>
@@ -597,11 +608,13 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                     <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-sm"><CheckCircle size={48} /></div>
                     <h3 className="text-2xl font-black text-slate-900 mb-2">Application Submitted</h3>
                     <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 mb-4 inline-flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                        <span className="text-amber-800 font-bold text-sm uppercase tracking-wide">KYC Pending</span>
+                        <span className={`w-2 h-2 rounded-full ${newVendorData.kycVerified ? 'bg-green-500' : 'bg-amber-500'} animate-pulse`}></span>
+                        <span className={`${newVendorData.kycVerified ? 'text-green-800' : 'text-amber-800'} font-bold text-sm uppercase tracking-wide`}>
+                            {newVendorData.kycVerified ? 'KYC Verified' : 'KYC Pending'}
+                        </span>
                     </div>
                     <p className="text-slate-500 mb-6 text-sm max-w-xs mx-auto">
-                        Vendor has been added to the registry. Full access is restricted until KYC documents are verified by a Market Administrator.
+                        Vendor has been added to the registry. {newVendorData.kycVerified ? 'Full access granted.' : 'Full access is restricted until documents are reviewed.'}
                     </p>
                     <Button onClick={resetAddVendorModal} className="w-full max-w-xs">Return to Dashboard</Button>
                 </div>
