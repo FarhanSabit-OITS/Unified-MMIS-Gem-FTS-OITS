@@ -156,6 +156,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, setUser,
               {isVendor && (
                   <>
                     <NavItem view="myshop" icon={Store} label="My Shop" />
+                    <NavItem view="suppliers" icon={Truck} label="Supplier Directory" />
                     <NavItem view="orders" icon={ShoppingBag} label="Orders" />
                     <NavItem view="requisitions" icon={Truck} label="Restock" />
                     <NavItem view="financials" icon={BarChart3} label="Financials" />

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { MOCK_TICKETS } from '../constants';
+import { MOCK_TICKETS, MOCK_STAFF } from '../constants';
 import { TicketPriority, TicketContext, UserRole, Ticket } from '../types';
-import { AlertCircle, Wrench, MessageSquare, Package, Bot, Paperclip, Send, Lock, Plus, Search } from 'lucide-react';
+import { AlertCircle, Wrench, MessageSquare, Package, Bot, Paperclip, Send, Lock, Plus, Search, UserPlus, Check, X } from 'lucide-react';
 import { ApiService } from '../services/api';
 
 interface TicketSystemProps {
@@ -24,7 +24,8 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
     title: '',
     description: '',
     context: TicketContext.SUPPORT,
-    priority: TicketPriority.MEDIUM
+    priority: TicketPriority.MEDIUM,
+    file: null as File | null
   });
 
   // RBAC Permissions
@@ -105,13 +106,24 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
         status: 'OPEN',
         createdAt: new Date().toISOString(),
         createdByRole: userRole,
-        marketId: marketId // Assign ticket to current user's market context
+        marketId: marketId, // Assign ticket to current user's market context
+        attachmentUrl: newTicket.file ? newTicket.file.name : undefined
     };
 
     setTickets([created, ...tickets]);
     setShowCreateModal(false);
-    setNewTicket({ title: '', description: '', context: TicketContext.SUPPORT, priority: TicketPriority.MEDIUM });
+    setNewTicket({ title: '', description: '', context: TicketContext.SUPPORT, priority: TicketPriority.MEDIUM, file: null });
     setSelectedTicketId(created.id);
+  };
+
+  const handleAssignTicket = (staffName: string) => {
+      if (!selectedTicket) return;
+      const updatedTickets = tickets.map(t => 
+          t.id === selectedTicket.id 
+          ? { ...t, status: 'ASSIGNED' as const, assignedTo: staffName } 
+          : t
+      );
+      setTickets(updatedTickets);
   };
 
   return (
@@ -166,6 +178,7 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
                 <div className="flex items-center gap-2 text-xs text-slate-500">
                 {getContextIcon(ticket.context)}
                 <span>{ticket.context}</span>
+                {ticket.status === 'ASSIGNED' && <span className="bg-slate-100 px-1 rounded text-[10px]">Assigned</span>}
                 </div>
             </div>
             ))
@@ -187,16 +200,38 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
                  </div>
               </div>
               
-              {canManageTickets && (
-                <button 
-                    onClick={() => generateSummary(selectedTicket.description || selectedTicket.title)}
-                    disabled={isLoadingSummary}
-                    className="flex items-center gap-2 text-purple-700 text-xs font-bold px-3 py-1.5 bg-purple-50 hover:bg-purple-100 rounded-full border border-purple-200 transition-colors"
-                >
-                    <Bot size={14} /> 
-                    {isLoadingSummary ? 'Analyzing...' : 'Generate AI Summary'}
-                </button>
-              )}
+              <div className="flex gap-2">
+                  {canManageTickets && selectedTicket.status === 'OPEN' && (
+                      <div className="relative group">
+                          <button className="flex items-center gap-2 text-blue-700 text-xs font-bold px-3 py-1.5 bg-blue-50 hover:bg-blue-100 rounded-full border border-blue-200 transition-colors">
+                              <UserPlus size={14} /> Assign
+                          </button>
+                          {/* Assignment Dropdown */}
+                          <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl hidden group-hover:block z-20 overflow-hidden">
+                              <div className="px-4 py-2 text-[10px] font-bold uppercase text-slate-400 bg-slate-50">Staff List</div>
+                              {MOCK_STAFF.map(staff => (
+                                  <button 
+                                    key={staff.id} 
+                                    onClick={() => handleAssignTicket(staff.name)}
+                                    className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 text-slate-700"
+                                  >
+                                      {staff.name} ({staff.role})
+                                  </button>
+                              ))}
+                          </div>
+                      </div>
+                  )}
+                  {canManageTickets && (
+                    <button 
+                        onClick={() => generateSummary(selectedTicket.description || selectedTicket.title)}
+                        disabled={isLoadingSummary}
+                        className="flex items-center gap-2 text-purple-700 text-xs font-bold px-3 py-1.5 bg-purple-50 hover:bg-purple-100 rounded-full border border-purple-200 transition-colors"
+                    >
+                        <Bot size={14} /> 
+                        {isLoadingSummary ? 'Analyzing...' : 'Generate AI Summary'}
+                    </button>
+                  )}
+              </div>
             </div>
             
             <div className="p-6 flex-1 overflow-y-auto">
@@ -219,6 +254,11 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
                   <p className="text-slate-800 text-sm leading-relaxed bg-slate-50 p-4 rounded-lg border border-slate-100">
                     {selectedTicket.description || "No detailed description provided."}
                   </p>
+                  {selectedTicket.attachmentUrl && (
+                      <div className="mt-3 flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2 rounded-lg w-fit border border-blue-100 cursor-pointer hover:bg-blue-100">
+                          <Paperclip size={14} /> {selectedTicket.attachmentUrl}
+                      </div>
+                  )}
                </div>
 
                {/* Chat Thread Mock */}
@@ -277,7 +317,10 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
     {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg">
-                <h3 className="text-lg font-bold text-slate-900 mb-4">Create New Ticket</h3>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-slate-900">Create New Ticket</h3>
+                    <button onClick={() => setShowCreateModal(false)}><X size={20} className="text-slate-400 hover:text-slate-600"/></button>
+                </div>
                 <div className="space-y-4">
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Title</label>
@@ -288,25 +331,27 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
                             onChange={(e) => setNewTicket({...newTicket, title: e.target.value})}
                         />
                     </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Context</label>
-                        <select 
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                            value={newTicket.context}
-                            onChange={(e) => setNewTicket({...newTicket, context: e.target.value as TicketContext})}
-                        >
-                            {Object.values(TicketContext).map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Priority</label>
-                        <select 
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                            value={newTicket.priority}
-                            onChange={(e) => setNewTicket({...newTicket, priority: e.target.value as TicketPriority})}
-                        >
-                            {Object.values(TicketPriority).map(p => <option key={p} value={p}>{p}</option>)}
-                        </select>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Context</label>
+                            <select 
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                value={newTicket.context}
+                                onChange={(e) => setNewTicket({...newTicket, context: e.target.value as TicketContext})}
+                            >
+                                {Object.values(TicketContext).map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Priority</label>
+                            <select 
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                value={newTicket.priority}
+                                onChange={(e) => setNewTicket({...newTicket, priority: e.target.value as TicketPriority})}
+                            >
+                                {Object.values(TicketPriority).map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                        </div>
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Description</label>
@@ -316,6 +361,26 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
                             onChange={(e) => setNewTicket({...newTicket, description: e.target.value})}
                         ></textarea>
                     </div>
+                    
+                    {/* File Attachment Input */}
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Attachment</label>
+                        <div className="flex items-center gap-2">
+                            <label className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm text-slate-600 transition-colors border border-slate-200">
+                                <Paperclip size={16} /> 
+                                {newTicket.file ? 'Change File' : 'Attach File'}
+                                <input 
+                                    type="file" 
+                                    className="hidden" 
+                                    onChange={(e) => {
+                                        if(e.target.files?.[0]) setNewTicket({...newTicket, file: e.target.files[0]});
+                                    }}
+                                />
+                            </label>
+                            {newTicket.file && <span className="text-xs text-blue-600 font-bold">{newTicket.file.name}</span>}
+                        </div>
+                    </div>
+
                     <div className="flex gap-3 pt-2">
                         <button onClick={() => setShowCreateModal(false)} className="flex-1 py-2 text-slate-500 hover:bg-slate-50 rounded-lg font-medium">Cancel</button>
                         <button onClick={handleCreateTicket} className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700">Submit Ticket</button>

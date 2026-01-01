@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MOCK_SUPPLIERS, MOCK_REQUISITIONS, MOCK_BIDS } from '../constants';
 import { Supplier, Bid, Requisition, UserRole } from '../types';
-import { Star, ShieldCheck, Truck, BarChart3, X, Gavel, FileText, CheckCircle2, Bot, Search, Lock } from 'lucide-react';
+import { Star, ShieldCheck, Truck, BarChart3, X, Gavel, FileText, CheckCircle2, Bot, Search, Lock, MessageSquare } from 'lucide-react';
 
 interface SuppliersNetworkProps {
   userRole?: UserRole;
@@ -15,6 +15,7 @@ export const SuppliersNetwork: React.FC<SuppliersNetworkProps> = ({ userRole = U
   const [suppliers, setSuppliers] = useState<Supplier[]>(MOCK_SUPPLIERS);
   const [ratingModalSupplier, setRatingModalSupplier] = useState<Supplier | null>(null);
   const [currentRating, setCurrentRating] = useState(0);
+  const [reviewText, setReviewText] = useState('');
   const [supplierSearch, setSupplierSearch] = useState('');
 
   // Bidding State
@@ -57,9 +58,12 @@ export const SuppliersNetwork: React.FC<SuppliersNetworkProps> = ({ userRole = U
       return s;
     }));
 
-    alert(`Rating of ${currentRating} stars submitted for ${ratingModalSupplier.companyName}. New Average: ${newAverage.toFixed(1)}`);
+    alert(`Rating of ${currentRating} stars submitted for ${ratingModalSupplier.companyName}. Review stored.`);
+    console.log("Review submitted:", reviewText);
+    
     setRatingModalSupplier(null);
     setCurrentRating(0);
+    setReviewText('');
   };
 
   // --- Bidding Handlers ---
@@ -91,7 +95,7 @@ export const SuppliersNetwork: React.FC<SuppliersNetworkProps> = ({ userRole = U
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Supplier Network Hub</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Suppliers Network Hub</h2>
           <p className="text-slate-500 text-sm">Connect with verified suppliers, view trust scores, and manage requisitions.</p>
         </div>
         
@@ -334,12 +338,15 @@ export const SuppliersNetwork: React.FC<SuppliersNetworkProps> = ({ userRole = U
           </div>
       )}
 
-      {/* Rating Modal */}
+      {/* Rating & Review Modal */}
       {ratingModalSupplier && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-           <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm animate-in fade-in zoom-in-95">
+           <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md animate-in fade-in zoom-in-95">
              <div className="flex justify-between items-center mb-4">
-               <h3 className="text-lg font-bold text-slate-900">Rate {ratingModalSupplier.companyName}</h3>
+               <div>
+                 <h3 className="text-lg font-bold text-slate-900">Rate Supplier</h3>
+                 <p className="text-xs text-slate-500">{ratingModalSupplier.companyName}</p>
+               </div>
                <button onClick={() => setRatingModalSupplier(null)} className="text-slate-400 hover:text-slate-600">
                  <X size={20} />
                </button>
@@ -360,6 +367,16 @@ export const SuppliersNetwork: React.FC<SuppliersNetworkProps> = ({ userRole = U
                 ))}
              </div>
 
+             <div className="mb-6">
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Write a Review (Optional)</label>
+                <textarea 
+                    className="w-full p-3 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none h-24"
+                    placeholder="Describe your experience with delivery times, product quality..."
+                    value={reviewText}
+                    onChange={(e) => setReviewText(e.target.value)}
+                ></textarea>
+             </div>
+
              <div className="text-center text-sm text-slate-500 mb-6">
                 {currentRating === 0 ? "Select a rating to submit" : `You are rating ${currentRating} out of 5 stars`}
              </div>
@@ -367,9 +384,9 @@ export const SuppliersNetwork: React.FC<SuppliersNetworkProps> = ({ userRole = U
              <button 
                 disabled={currentRating === 0}
                 onClick={handleRateSubmit}
-                className="w-full bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold transition-all"
+                className="w-full bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-2"
              >
-               Submit Rating
+               <CheckCircle2 size={18} /> Submit Review
              </button>
            </div>
         </div>
