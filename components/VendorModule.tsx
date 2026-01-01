@@ -31,7 +31,10 @@ import {
   Briefcase,
   Mail,
   Phone,
-  StickyNote
+  StickyNote,
+  User,
+  ShieldAlert,
+  Layers
 } from 'lucide-react';
 import { Button } from './ui/Button';
 
@@ -220,7 +223,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
       setVendors(updatedVendors);
       setSelectedVendor({ ...selectedVendor, notes: noteDraft });
       setIsEditingNote(false);
-      logAuditAction('NOTE_UPDATE', selectedVendor.name, 'Updated vendor administrative notes');
+      logAuditAction('NOTE_UPDATE', selectedVendor.name, `Admin updated notes: "${noteDraft.substring(0, 30)}..."`);
   };
 
   // --- Add Vendor Handlers ---
@@ -388,9 +391,9 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
             <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
               <tr>
                 <th className="px-6 py-4 whitespace-nowrap">Vendor Info</th>
-                <th className="px-6 py-4 whitespace-nowrap">Shop #</th>
+                <th className="px-6 py-4 whitespace-nowrap">Shop / Location</th>
+                <th className="px-6 py-4 whitespace-nowrap">Location & Tenure</th>
                 <th className="px-6 py-4 whitespace-nowrap">Rent Status</th>
-                <th className="px-6 py-4 whitespace-nowrap">KYC</th>
                 <th className="px-6 py-4 whitespace-nowrap">Status</th>
                 {isAdmin && <th className="px-6 py-4 text-center whitespace-nowrap">Admin Actions</th>}
                 <th className="px-6 py-4 text-right whitespace-nowrap">QR</th>
@@ -404,8 +407,31 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                   <td className="px-6 py-4">
                     <div className="font-medium text-slate-900">{vendor.name}</div>
                     <div className="text-xs text-slate-500">{vendor.gender} • {vendor.age} yrs</div>
+                    {vendor.kycVerified && (
+                        <div className="text-[10px] text-green-600 flex items-center gap-1 mt-1 font-bold">
+                            <CheckCircle size={10} /> Verified
+                        </div>
+                    )}
                   </td>
-                  <td className="px-6 py-4 text-slate-600 font-mono">{vendor.shopNumber}</td>
+                  <td className="px-6 py-4">
+                      <div className="font-mono text-slate-700 font-bold">{vendor.shopNumber}</div>
+                      <div className="text-xs text-slate-500 flex items-center gap-1">
+                          <Building2 size={10} /> {getMarketName(vendor.marketId)}
+                      </div>
+                  </td>
+                  <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1">
+                          <span className="text-xs text-slate-600 flex items-center gap-1">
+                              <Layers size={10} /> {vendor.level || 'Ground Floor'}
+                          </span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded border w-fit ${
+                              vendor.ownershipType === 'Sole Proprietorship' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                              'bg-purple-50 text-purple-700 border-purple-100'
+                          }`}>
+                              {vendor.ownershipType || 'Leasehold'}
+                          </span>
+                      </div>
+                  </td>
                   <td className="px-6 py-4">
                     {vendor.rentDue > 0 ? (
                       <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 px-2.5 py-1.5 rounded-full text-xs font-bold border border-red-100">
@@ -415,13 +441,6 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                       <span className="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-1.5 rounded-full text-xs font-bold border border-green-100">
                         <CheckCircle size={12} /> Paid
                       </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {vendor.kycVerified ? (
-                      <CheckCircle size={18} className="text-green-500" />
-                    ) : (
-                      <span className="text-amber-500 text-xs font-medium">Pending</span>
                     )}
                   </td>
                   <td className="px-6 py-4">
@@ -487,10 +506,18 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
       {selectedVendor && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-start shrink-0">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-start shrink-0 bg-slate-50/50">
                <div>
-                  <h3 className="text-xl font-bold text-slate-900">{selectedVendor.name}</h3>
-                  <p className="text-sm text-slate-500">ID: {selectedVendor.id}</p>
+                  <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                      <User size={20} className="text-slate-600" />
+                      {selectedVendor.name}
+                  </h3>
+                  <div className="flex gap-3 mt-1">
+                      <p className="text-xs text-slate-500 font-mono">ID: {selectedVendor.id}</p>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${selectedVendor.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {selectedVendor.status}
+                      </span>
+                  </div>
                </div>
                <button onClick={() => setSelectedVendor(null)} className="text-slate-400 hover:text-slate-600">
                  <X size={20} />
@@ -498,31 +525,32 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
             </div>
             
             {/* Modal Tabs */}
-            <div className="flex border-b border-slate-100 px-6 gap-6 shrink-0 overflow-x-auto">
+            <div className="flex border-b border-slate-100 px-6 gap-6 shrink-0 overflow-x-auto bg-white">
                 <button 
                     onClick={() => setActiveModalTab('OVERVIEW')}
-                    className={`py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeModalTab === 'OVERVIEW' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+                    className={`py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeModalTab === 'OVERVIEW' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                 >
                     Overview
                 </button>
                 <button 
                     onClick={() => setActiveModalTab('DUES')}
-                    className={`py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeModalTab === 'DUES' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+                    className={`py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeModalTab === 'DUES' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                 >
-                    <History size={14} /> Dues History
+                    <History size={14} /> Financials
                 </button>
                 <button 
                     onClick={() => setActiveModalTab('DOCUMENTS')}
-                    className={`py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeModalTab === 'DOCUMENTS' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+                    className={`py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeModalTab === 'DOCUMENTS' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                 >
                     <FileText size={14} /> Documents
                 </button>
                 {isAdmin && (
                   <button 
                       onClick={() => setActiveModalTab('NOTES')}
-                      className={`py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeModalTab === 'NOTES' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+                      className={`py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeModalTab === 'NOTES' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                   >
                       <StickyNote size={14} /> Admin Notes
+                      {selectedVendor.notes && <div className="w-2 h-2 rounded-full bg-amber-500" />}
                   </button>
                 )}
             </div>
@@ -532,36 +560,59 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                    <>
                     {/* Financial & Stock Summary */}
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-                            <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Rent Due</div>
-                            <div className={`text-2xl font-bold ${selectedVendor.rentDue > 0 ? 'text-red-600' : 'text-slate-900'}`}>{selectedVendor.rentDue.toLocaleString()} UGX</div>
+                        <div className={`p-4 rounded-lg border flex flex-col justify-between ${selectedVendor.rentDue > 0 ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
+                            <div className="flex justify-between items-start">
+                                <div className={`text-xs font-bold uppercase tracking-wider ${selectedVendor.rentDue > 0 ? 'text-red-700' : 'text-green-700'}`}>Financial Status</div>
+                                {selectedVendor.rentDue > 0 && <AlertTriangle size={14} className="text-red-600" />}
+                            </div>
+                            <div className="mt-2">
+                                <div className={`text-2xl font-black ${selectedVendor.rentDue > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                                    {selectedVendor.rentDue.toLocaleString()} <span className="text-sm font-normal">UGX</span>
+                                </div>
+                                <div className="text-[10px] text-slate-500 mt-1">Rent Due</div>
+                                {selectedVendor.vatDue !== undefined && (
+                                    <div className="text-xs font-medium text-slate-600 mt-1">
+                                        + {selectedVendor.vatDue.toLocaleString()} VAT
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-                            <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Products</div>
-                            <div className="text-2xl font-bold text-slate-900">{selectedVendor.productsCount}</div>
+                        <div className="p-4 bg-white rounded-lg border border-slate-200">
+                            <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-2">Store Inventory</div>
+                            <div className="flex items-center gap-2">
+                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                    <Briefcase size={20} />
+                                </div>
+                                <div>
+                                    <div className="text-2xl font-bold text-slate-900">{selectedVendor.productsCount}</div>
+                                    <div className="text-[10px] text-slate-400">Total Products Listed</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     {/* Location & Address Details */}
                     <div className="bg-white border border-slate-100 rounded-lg p-4 shadow-sm">
                         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Location Details</h4>
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 bg-slate-100 text-slate-600 rounded-lg mt-0.5">
                                     <Building2 size={16} />
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-xs text-slate-500">Assigned Shop</span>
                                     <span className="text-sm font-bold text-slate-900">{selectedVendor.shopNumber}</span>
+                                    <span className="text-[10px] text-slate-400">{selectedVendor.level || 'Ground Floor'} • {selectedVendor.section || 'General'}</span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 bg-slate-100 text-slate-600 rounded-lg mt-0.5">
                                     <MapPin size={16} />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-xs text-slate-500">Market</span>
+                                    <span className="text-xs text-slate-500">Market Branch</span>
                                     <span className="text-sm font-bold text-slate-900">{getMarketName(selectedVendor.marketId)}</span>
+                                    <span className="text-[10px] text-slate-400">{selectedVendor.city || 'Kampala'}</span>
                                 </div>
                             </div>
                         </div>
@@ -572,32 +623,35 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Contact Information</h4>
                         <div className="space-y-3">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                                    <Phone size={16} />
-                                </div>
+                                <Phone size={16} className="text-slate-400" />
                                 <span className="text-sm font-medium text-slate-700">{selectedVendor.phone || 'N/A'}</span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                                    <Mail size={16} />
-                                </div>
+                                <Mail size={16} className="text-slate-400" />
                                 <span className="text-sm font-medium text-slate-700">{selectedVendor.email || 'N/A'}</span>
                             </div>
                         </div>
                     </div>
 
                     <div>
-                        <h4 className="font-semibold text-slate-900 mb-2">Quick Actions</h4>
+                        <h4 className="font-semibold text-slate-900 mb-2 text-sm">Quick Actions</h4>
                         <div className="flex gap-2">
                         <button 
                             onClick={() => { setQrModalVendor(selectedVendor); setSelectedVendor(null); }}
-                            className="flex-1 py-2 border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 flex items-center justify-center gap-2"
+                            className="flex-1 py-2 border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 flex items-center justify-center gap-2 transition-colors"
                         >
                             <QrCode size={16}/> Print Shop QR
                         </button>
                         {isAdmin && (
-                            <button className="flex-1 py-2 border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 hover:border-red-200">
-                            <Ban size={16}/> Suspend
+                            <button 
+                                onClick={(e) => handleToggleStatus(selectedVendor, e)}
+                                className={`flex-1 py-2 border rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
+                                    selectedVendor.status === 'ACTIVE' 
+                                    ? 'border-red-200 text-red-600 hover:bg-red-50' 
+                                    : 'border-green-200 text-green-600 hover:bg-green-50'
+                                }`}
+                            >
+                                <Ban size={16}/> {selectedVendor.status === 'ACTIVE' ? 'Suspend Access' : 'Reactivate'}
                             </button>
                         )}
                         </div>
@@ -678,10 +732,10 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                ) : activeModalTab === 'NOTES' && isAdmin ? (
                   /* ADMIN NOTES TAB */
                   <div className="space-y-4">
-                      <div className="bg-yellow-50/50 rounded-lg border border-yellow-100 p-4">
+                      <div className="bg-amber-50/50 rounded-lg border border-amber-100 p-4">
                         <div className="flex justify-between items-center mb-2">
                             <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                                <FileText size={16} className="text-yellow-600" /> Administrative Records
+                                <FileText size={16} className="text-amber-600" /> Administrative Records
                             </h4>
                             {!isEditingNote && (
                                 <button onClick={() => setIsEditingNote(true)} className="text-xs text-blue-600 font-bold hover:underline">Edit Notes</button>
@@ -690,27 +744,27 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                         {isEditingNote ? (
                             <div className="space-y-2">
                                 <textarea 
-                                    className="w-full p-2 text-sm border border-yellow-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-yellow-400 min-h-[150px]"
-                                    rows={5}
+                                    className="w-full p-3 text-sm border border-amber-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 min-h-[150px] shadow-sm resize-none"
                                     value={noteDraft}
                                     onChange={(e) => setNoteDraft(e.target.value)}
                                     placeholder="Add notes regarding vendor compliance, special requests, or behavioral flags..."
+                                    autoFocus
                                 />
                                 <div className="flex gap-2 justify-end">
-                                    <button onClick={() => setIsEditingNote(false)} className="text-xs text-slate-500 hover:text-slate-800 font-medium">Cancel</button>
-                                    <button onClick={handleSaveNote} className="flex items-center gap-1 text-xs bg-yellow-600 text-white px-2 py-1 rounded font-bold hover:bg-yellow-700">
-                                        <Save size={12} /> Save
+                                    <button onClick={() => { setIsEditingNote(false); setNoteDraft(selectedVendor.notes || ''); }} className="text-xs text-slate-500 hover:text-slate-800 font-medium px-3 py-1">Cancel</button>
+                                    <button onClick={handleSaveNote} className="flex items-center gap-1 text-xs bg-amber-600 text-white px-3 py-1.5 rounded-md font-bold hover:bg-amber-700 shadow-sm transition-colors">
+                                        <Save size={12} /> Save Note
                                     </button>
                                 </div>
                             </div>
                         ) : (
-                            <div className="text-sm text-slate-600 bg-white p-3 rounded border border-yellow-100 min-h-[100px] whitespace-pre-wrap">
-                                {selectedVendor.notes || <span className="text-slate-400 italic">No administrative notes available for this vendor.</span>}
+                            <div className="text-sm text-slate-700 bg-white p-4 rounded-lg border border-amber-100 min-h-[100px] whitespace-pre-wrap leading-relaxed shadow-sm">
+                                {selectedVendor.notes || <span className="text-slate-400 italic">No administrative notes available for this vendor. Click edit to add one.</span>}
                             </div>
                         )}
-                        <p className="text-[10px] text-slate-400 mt-2">
-                            * Changes to these notes are logged in the system audit trail.
-                        </p>
+                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-amber-100 text-[10px] text-amber-700/60 font-medium">
+                            <ShieldAlert size={12} /> Changes to these notes are logged in the system audit trail.
+                        </div>
                     </div>
                   </div>
                ) : (
@@ -723,25 +777,29 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                      </div>
                      
                      <div className="space-y-2">
-                        <div className="flex items-center justify-between p-3 border border-slate-200 rounded-lg hover:bg-slate-50">
+                        <div className="flex items-center justify-between p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer group">
                             <div className="flex items-center gap-3">
-                                <FileText className="text-red-500" size={20} />
+                                <div className="p-2 bg-red-50 text-red-500 rounded-lg group-hover:bg-red-100 transition-colors">
+                                    <FileText size={18} />
+                                </div>
                                 <div>
-                                    <div className="text-sm font-bold text-slate-800">Trading_License_2023.pdf</div>
+                                    <div className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">Trading_License_2023.pdf</div>
                                     <div className="text-xs text-slate-500">Uploaded on 2023-01-15</div>
                                 </div>
                             </div>
-                            <button className="text-slate-400 hover:text-blue-600"><Download size={16}/></button>
+                            <button className="text-slate-300 hover:text-blue-600"><Download size={16}/></button>
                         </div>
-                        <div className="flex items-center justify-between p-3 border border-slate-200 rounded-lg hover:bg-slate-50">
+                        <div className="flex items-center justify-between p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer group">
                             <div className="flex items-center gap-3">
-                                <FileText className="text-blue-500" size={20} />
+                                <div className="p-2 bg-blue-50 text-blue-500 rounded-lg group-hover:bg-blue-100 transition-colors">
+                                    <FileText size={18} />
+                                </div>
                                 <div>
-                                    <div className="text-sm font-bold text-slate-800">National_ID_Scan.jpg</div>
+                                    <div className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">National_ID_Scan.jpg</div>
                                     <div className="text-xs text-slate-500">Uploaded on 2023-01-10</div>
                                 </div>
                             </div>
-                            <button className="text-slate-400 hover:text-blue-600"><Download size={16}/></button>
+                            <button className="text-slate-300 hover:text-blue-600"><Download size={16}/></button>
                         </div>
                      </div>
                   </div>
