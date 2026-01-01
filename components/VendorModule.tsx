@@ -116,8 +116,11 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   }, []);
 
   const filteredVendors = vendors.filter(v => {
-    const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          v.shopNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    const term = searchTerm.toLowerCase();
+    const matchesSearch = v.name.toLowerCase().includes(term) || 
+                          v.shopNumber.toLowerCase().includes(term) ||
+                          v.status.toLowerCase().includes(term);
+                          
     const matchesStatus = statusFilter === 'ALL' || v.status === statusFilter;
     const matchesMarket = selectedMarket ? v.marketId === selectedMarket : true;
     
