@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { CITIES, MARKETS } from '../constants';
-import { ShieldCheck, CheckCircle2, User, MapPin, Mail, Phone, ShoppingBag, Upload, FileText, AlertCircle, X } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, User, MapPin, Mail, Phone, ShoppingBag } from 'lucide-react';
 import { z } from 'zod';
+import { VendorKYCForm } from './VendorKYCForm';
 
 interface VendorApplicationFormProps {
   onCancel: () => void;
@@ -34,9 +35,10 @@ export const VendorApplicationForm: React.FC<VendorApplicationFormProps> = ({ on
     nid: File | null;
     license: File | null;
   }>({ nid: null, license: null });
+  
+  const [isKycValid, setIsKycValid] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [fileErrors, setFileErrors] = useState<{ nid?: string; license?: string }>({});
   const [globalError, setGlobalError] = useState('');
 
   const handleChange = (field: string, value: string) => {
@@ -49,38 +51,6 @@ export const VendorApplicationForm: React.FC<VendorApplicationFormProps> = ({ on
       });
     }
     setGlobalError('');
-  };
-
-  const validateFile = (file: File) => {
-    const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-    if (!validTypes.includes(file.type)) {
-      return 'Invalid file type. Use JPG, PNG, or PDF.';
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      return 'File size exceeds 5MB limit.';
-    }
-    return null;
-  };
-
-  const handleFileChange = (type: 'nid' | 'license', e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-        const file = e.target.files[0];
-        const error = validateFile(file);
-
-        if (error) {
-            setFileErrors(prev => ({ ...prev, [type]: error }));
-            setDocuments(prev => ({ ...prev, [type]: null }));
-        } else {
-            setFileErrors(prev => ({ ...prev, [type]: undefined }));
-            setDocuments(prev => ({ ...prev, [type]: file }));
-        }
-        setGlobalError('');
-    }
-  };
-
-  const removeFile = (type: 'nid' | 'license') => {
-      setDocuments(prev => ({ ...prev, [type]: null }));
-      setFileErrors(prev => ({ ...prev, [type]: undefined }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -102,13 +72,8 @@ export const VendorApplicationForm: React.FC<VendorApplicationFormProps> = ({ on
       return;
     }
 
-    if (!documents.nid || !documents.license) {
-        setGlobalError('Both National ID and Trading License are required.');
-        return;
-    }
-
-    if (fileErrors.nid || fileErrors.license) {
-        setGlobalError('Please resolve file validation errors.');
+    if (!isKycValid || !documents.nid || !documents.license) {
+        setGlobalError('Please complete the KYC Documents section.');
         return;
     }
 
@@ -232,69 +197,14 @@ export const VendorApplicationForm: React.FC<VendorApplicationFormProps> = ({ on
 
         <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 mt-6">KYC Documents</h4>
         
-        <div className="grid grid-cols-1 gap-4">
-            {/* National ID Upload */}
-            <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">1. National ID / Passport *</label>
-                <div className={`border-2 border-dashed rounded-lg p-4 text-center transition cursor-pointer relative ${documents.nid ? 'border-green-400 bg-green-50' : fileErrors.nid ? 'border-red-300 bg-red-50' : 'border-slate-300 hover:bg-slate-50'}`}>
-                    <input 
-                        type="file" 
-                        id="nid-upload-reg" 
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        onChange={(e) => handleFileChange('nid', e)}
-                        accept=".pdf,.jpg,.png"
-                    />
-                    {documents.nid ? (
-                        <div className="flex items-center justify-between px-2">
-                            <div className="flex items-center gap-2 text-green-700 font-bold">
-                                <CheckCircle2 size={18} />
-                                <span className="truncate max-w-[180px] text-sm">{documents.nid.name}</span>
-                            </div>
-                            <button onClick={(e) => { e.preventDefault(); removeFile('nid'); }} className="z-10 p-1 bg-white rounded-full shadow hover:text-red-500">
-                                <X size={14} />
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center text-slate-500 py-2">
-                            <Upload size={20} className="mb-1 text-blue-500" />
-                            <span className="text-xs">Upload Scan (Max 5MB)</span>
-                        </div>
-                    )}
-                </div>
-                {fileErrors.nid && <p className="text-xs text-red-500 mt-1">{fileErrors.nid}</p>}
-            </div>
-
-            {/* Trading License Upload */}
-            <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">2. Trading License *</label>
-                <div className={`border-2 border-dashed rounded-lg p-4 text-center transition cursor-pointer relative ${documents.license ? 'border-green-400 bg-green-50' : fileErrors.license ? 'border-red-300 bg-red-50' : 'border-slate-300 hover:bg-slate-50'}`}>
-                    <input 
-                        type="file" 
-                        id="license-upload-reg" 
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        onChange={(e) => handleFileChange('license', e)}
-                        accept=".pdf,.jpg,.png"
-                    />
-                    {documents.license ? (
-                        <div className="flex items-center justify-between px-2">
-                            <div className="flex items-center gap-2 text-green-700 font-bold">
-                                <CheckCircle2 size={18} />
-                                <span className="truncate max-w-[180px] text-sm">{documents.license.name}</span>
-                            </div>
-                            <button onClick={(e) => { e.preventDefault(); removeFile('license'); }} className="z-10 p-1 bg-white rounded-full shadow hover:text-red-500">
-                                <X size={14} />
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center text-slate-500 py-2">
-                            <FileText size={20} className="mb-1 text-purple-500" />
-                            <span className="text-xs">Upload License (Max 5MB)</span>
-                        </div>
-                    )}
-                </div>
-                {fileErrors.license && <p className="text-xs text-red-500 mt-1">{fileErrors.license}</p>}
-            </div>
-        </div>
+        {/* Reused VendorKYCForm Component */}
+        <VendorKYCForm 
+            onFilesChange={(files, isValid) => {
+                setDocuments(files);
+                setIsKycValid(isValid);
+                if(isValid) setGlobalError('');
+            }}
+        />
 
       </div>
 

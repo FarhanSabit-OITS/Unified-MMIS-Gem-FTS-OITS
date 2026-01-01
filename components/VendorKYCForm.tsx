@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload, FileText, CheckCircle2, AlertCircle, X, ShieldCheck, Loader2 } from 'lucide-react';
 
 interface VendorKYCFormProps {
-  onSuccess: () => void;
+  onSuccess?: () => void;
+  onFilesChange?: (files: { nid: File | null; license: File | null }, isValid: boolean) => void;
 }
 
-export const VendorKYCForm: React.FC<VendorKYCFormProps> = ({ onSuccess }) => {
+export const VendorKYCForm: React.FC<VendorKYCFormProps> = ({ onSuccess, onFilesChange }) => {
   const [documents, setDocuments] = useState<{
     nid: File | null;
     license: File | null;
@@ -13,6 +14,14 @@ export const VendorKYCForm: React.FC<VendorKYCFormProps> = ({ onSuccess }) => {
 
   const [errors, setErrors] = useState<{ nid?: string; license?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Notify parent of changes when in controlled mode
+  useEffect(() => {
+    if (onFilesChange) {
+      const isValid = !!documents.nid && !!documents.license && !errors.nid && !errors.license;
+      onFilesChange(documents, isValid);
+    }
+  }, [documents, errors, onFilesChange]);
 
   const validateFile = (file: File) => {
     const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
@@ -56,22 +65,24 @@ export const VendorKYCForm: React.FC<VendorKYCFormProps> = ({ onSuccess }) => {
     // Simulate Backend API Upload
     setTimeout(() => {
       setIsSubmitting(false);
-      onSuccess();
+      if (onSuccess) onSuccess();
     }, 2000);
   };
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3">
-        <ShieldCheck className="text-blue-600 shrink-0" size={24} />
-        <div>
-          <h4 className="font-bold text-blue-900 text-sm">Vendor Verification Required</h4>
-          <p className="text-xs text-blue-700 mt-1">
-            Per Market Authority regulations, all vendors must provide a valid National ID/Passport 
-            and a current Trading License to operate.
-          </p>
+      {!onFilesChange && (
+        <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3">
+          <ShieldCheck className="text-blue-600 shrink-0" size={24} />
+          <div>
+            <h4 className="font-bold text-blue-900 text-sm">Vendor Verification Required</h4>
+            <p className="text-xs text-blue-700 mt-1">
+              Per Market Authority regulations, all vendors must provide a valid National ID/Passport 
+              and a current Trading License to operate.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* NID Upload */}
@@ -159,13 +170,16 @@ export const VendorKYCForm: React.FC<VendorKYCFormProps> = ({ onSuccess }) => {
         </div>
       </div>
 
-      <button 
-        disabled={!documents.nid || !documents.license || isSubmitting}
-        onClick={handleSubmit}
-        className="w-full py-4 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2"
-      >
-        {isSubmitting ? <><Loader2 className="animate-spin" size={20} /> Processing...</> : 'Submit Documents for Verification'}
-      </button>
+      {/* Only show submit button if NOT in controlled mode (onFilesChange provided) */}
+      {!onFilesChange && (
+        <button 
+            disabled={!documents.nid || !documents.license || isSubmitting}
+            onClick={handleSubmit}
+            className="w-full py-4 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2"
+        >
+            {isSubmitting ? <><Loader2 className="animate-spin" size={20} /> Processing...</> : 'Submit Documents for Verification'}
+        </button>
+      )}
     </div>
   );
 };
