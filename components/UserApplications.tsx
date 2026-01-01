@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { ApplicationStatus } from '../types';
 import { VendorApplicationForm } from './VendorApplicationForm';
 import { MarketAdminApplicationForm } from './MarketAdminApplicationForm';
+import { SupplierApplicationForm } from './SupplierApplicationForm';
 import { ApiService } from '../services/api';
 import { 
   FileText, Clock, CheckCircle2, XCircle, Building2, MapPin, Calendar,
-  AlertCircle, Plus, Store, Briefcase, Loader2, ArrowLeft
+  AlertCircle, Plus, Store, Briefcase, Loader2, ArrowLeft, Truck
 } from 'lucide-react';
 
 export const UserApplications: React.FC = () => {
-  const [view, setView] = useState<'LIST' | 'NEW_VENDOR' | 'NEW_ADMIN' | 'SUCCESS_VENDOR'>('LIST');
+  const [view, setView] = useState<'LIST' | 'NEW_VENDOR' | 'NEW_ADMIN' | 'NEW_SUPPLIER' | 'SUCCESS_VENDOR'>('LIST');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Mock Data for User Applications (In real app, fetch via useEffect)
@@ -31,7 +32,7 @@ export const UserApplications: React.FC = () => {
     }
   ]);
 
-  const handleCreateApplication = async (data: any, type: 'VENDOR' | 'ADMIN') => {
+  const handleCreateApplication = async (data: any, type: 'VENDOR' | 'ADMIN' | 'SUPPLIER') => {
     setIsSubmitting(true);
     try {
         const formData = new FormData();
@@ -45,9 +46,14 @@ export const UserApplications: React.FC = () => {
             });
             if (data.documents.nid) formData.append('nidDocument', data.documents.nid);
             if (data.documents.license) formData.append('licenseDocument', data.documents.license);
+        } else if (type === 'SUPPLIER' && data.document) {
+            Object.keys(data).forEach(key => {
+                if (key !== 'document') formData.append(key, data[key]);
+            });
+            formData.append('incorporationDocument', data.document);
         } else {
             // Handle Admin data
-            Object.keys(data).forEach(key => formData.append(key, data[key]));
+            Object.keys(data).forEach(key => formData.append(key, data[key]);
         }
 
         // API Call
@@ -56,9 +62,9 @@ export const UserApplications: React.FC = () => {
         // Optimistic UI Update (Mocking the response structure)
         const newApp = {
             id: `app-${Date.now()}`,
-            type: type === 'VENDOR' ? 'VENDOR_ACCESS' : 'MARKET_ADMIN_ACCESS',
-            marketName: 'Pending Assignment',
-            location: 'Kampala',
+            type: type === 'VENDOR' ? 'VENDOR_ACCESS' : type === 'SUPPLIER' ? 'SUPPLIER_ACCESS' : 'MARKET_ADMIN_ACCESS',
+            marketName: type === 'VENDOR' ? 'Pending Assignment' : 'N/A (Global)',
+            location: type === 'VENDOR' ? 'Kampala' : data.warehouseLocation || 'Kampala',
             submittedAt: new Date().toISOString().split('T')[0],
             status: ApplicationStatus.PENDING,
             remarks: 'Application submitted successfully. Awaiting administrative review.',
@@ -107,7 +113,7 @@ export const UserApplications: React.FC = () => {
             </div>
             <h2 className="text-2xl font-black text-slate-900 mb-2">KYC Pending</h2>
             <p className="text-slate-500 mb-8 leading-relaxed">
-                Your application has been successfully submitted. Your KYC documents (ID and License) are currently under review by our compliance team. You will be notified once the verification is complete.
+                Your application has been successfully submitted. Your documents are currently under review by our compliance team. You will be notified once the verification is complete.
             </p>
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-8">
                 <div className="flex justify-between items-center text-sm mb-2">
@@ -170,6 +176,27 @@ export const UserApplications: React.FC = () => {
     );
   }
 
+  if (view === 'NEW_SUPPLIER') {
+    return (
+        <div className="max-w-2xl mx-auto">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">New Supplier Application</h2>
+            {isSubmitting ? (
+                <div className="text-center py-20">
+                    <Loader2 className="animate-spin mx-auto mb-4" size={40} />
+                    <p>Submitting business details...</p>
+                </div>
+            ) : (
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <SupplierApplicationForm
+                    onCancel={() => setView('LIST')}
+                    onSubmit={(data) => handleCreateApplication(data, 'SUPPLIER')}
+                />
+                </div>
+            )}
+        </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -177,12 +204,18 @@ export const UserApplications: React.FC = () => {
           <h2 className="text-2xl font-bold text-slate-900">My Applications</h2>
           <p className="text-slate-500 text-sm">Track the status of your role access requests.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
             <button 
             onClick={() => setView('NEW_ADMIN')}
             className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-colors text-sm"
             >
             <Briefcase size={16} /> Market Admin
+            </button>
+            <button 
+            onClick={() => setView('NEW_SUPPLIER')}
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-colors text-sm"
+            >
+            <Truck size={16} /> Supplier Access
             </button>
             <button 
             onClick={() => setView('NEW_VENDOR')}
@@ -200,7 +233,9 @@ export const UserApplications: React.FC = () => {
             <div className="p-6 border-b border-slate-100 flex flex-wrap justify-between items-start gap-4">
               <div className="flex gap-4">
                 <div className="p-3 bg-blue-50 rounded-lg text-blue-600 h-fit">
-                  {app.type === 'VENDOR_ACCESS' ? <Store size={24} /> : <FileText size={24} />}
+                  {app.type === 'VENDOR_ACCESS' ? <Store size={24} /> : 
+                   app.type === 'SUPPLIER_ACCESS' ? <Truck size={24} /> :
+                   <FileText size={24} />}
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
