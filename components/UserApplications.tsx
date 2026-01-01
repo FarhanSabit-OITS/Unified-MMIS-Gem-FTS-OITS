@@ -53,7 +53,7 @@ export const UserApplications: React.FC = () => {
             formData.append('incorporationDocument', data.document);
         } else {
             // Handle Admin data
-            Object.keys(data).forEach(key => formData.append(key, data[key]);
+            Object.keys(data).forEach(key => formData.append(key, data[key]));
         }
 
         // API Call
