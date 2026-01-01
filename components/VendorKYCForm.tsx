@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, CheckCircle2, AlertCircle, X, ShieldCheck } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, AlertCircle, X, ShieldCheck, Loader2 } from 'lucide-react';
 
 interface VendorKYCFormProps {
   onSuccess: () => void;
@@ -40,6 +40,11 @@ export const VendorKYCForm: React.FC<VendorKYCFormProps> = ({ onSuccess }) => {
     }
   };
 
+  const removeFile = (type: 'nid' | 'license') => {
+      setDocuments(prev => ({ ...prev, [type]: null }));
+      setErrors(prev => ({ ...prev, [type]: undefined }));
+  };
+
   const handleSubmit = () => {
     if (!documents.nid || !documents.license) {
       alert("Please upload both required documents.");
@@ -71,32 +76,38 @@ export const VendorKYCForm: React.FC<VendorKYCFormProps> = ({ onSuccess }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* NID Upload */}
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">1. National ID / Passport</label>
-          <div className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition ${
+          <label className="block text-sm font-bold text-slate-700 mb-2">1. National ID / Passport *</label>
+          <div className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition relative h-40 ${
             documents.nid ? 'border-green-400 bg-green-50' : errors.nid ? 'border-red-300 bg-red-50' : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50'
           }`}>
             <input 
               type="file" 
-              className="hidden" 
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
               id="nid-upload" 
               accept=".jpg,.png,.pdf"
               onChange={(e) => handleFileChange('nid', e)} 
             />
-            <label htmlFor="nid-upload" className="cursor-pointer w-full flex flex-col items-center">
-              {documents.nid ? (
-                <>
+            {documents.nid ? (
+                <div className="flex flex-col items-center z-10 pointer-events-none">
                   <CheckCircle2 className="text-green-600 mb-2" size={32} />
-                  <p className="font-bold text-green-800 text-sm truncate w-full">{documents.nid.name}</p>
+                  <p className="font-bold text-green-800 text-sm truncate max-w-[150px]">{documents.nid.name}</p>
                   <p className="text-xs text-green-600">{(documents.nid.size / 1024 / 1024).toFixed(2)} MB</p>
-                </>
-              ) : (
-                <>
+                </div>
+            ) : (
+                <div className="flex flex-col items-center z-10 pointer-events-none">
                   <Upload className={`${errors.nid ? 'text-red-400' : 'text-slate-400'} mb-2`} size={32} />
-                  <p className="font-bold text-slate-600 text-sm">Upload ID Document</p>
+                  <p className="font-bold text-slate-600 text-sm">Drag & Drop or Click</p>
                   <p className="text-xs text-slate-400 mt-1">PDF, JPG or PNG (Max 5MB)</p>
-                </>
-              )}
-            </label>
+                </div>
+            )}
+            {documents.nid && (
+                <button 
+                    onClick={(e) => { e.preventDefault(); removeFile('nid'); }}
+                    className="absolute top-2 right-2 p-1 bg-white rounded-full shadow hover:text-red-500 z-20"
+                >
+                    <X size={14} />
+                </button>
+            )}
           </div>
           {errors.nid && (
             <div className="mt-2 text-xs text-red-600 flex items-center gap-1">
@@ -107,32 +118,38 @@ export const VendorKYCForm: React.FC<VendorKYCFormProps> = ({ onSuccess }) => {
 
         {/* License Upload */}
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">2. Trading License</label>
-          <div className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition ${
+          <label className="block text-sm font-bold text-slate-700 mb-2">2. Trading License *</label>
+          <div className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition relative h-40 ${
             documents.license ? 'border-green-400 bg-green-50' : errors.license ? 'border-red-300 bg-red-50' : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50'
           }`}>
             <input 
               type="file" 
-              className="hidden" 
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
               id="license-upload" 
               accept=".jpg,.png,.pdf"
               onChange={(e) => handleFileChange('license', e)} 
             />
-            <label htmlFor="license-upload" className="cursor-pointer w-full flex flex-col items-center">
-              {documents.license ? (
-                <>
+            {documents.license ? (
+                <div className="flex flex-col items-center z-10 pointer-events-none">
                   <CheckCircle2 className="text-green-600 mb-2" size={32} />
-                  <p className="font-bold text-green-800 text-sm truncate w-full">{documents.license.name}</p>
+                  <p className="font-bold text-green-800 text-sm truncate max-w-[150px]">{documents.license.name}</p>
                   <p className="text-xs text-green-600">{(documents.license.size / 1024 / 1024).toFixed(2)} MB</p>
-                </>
-              ) : (
-                <>
+                </div>
+            ) : (
+                <div className="flex flex-col items-center z-10 pointer-events-none">
                   <FileText className={`${errors.license ? 'text-red-400' : 'text-slate-400'} mb-2`} size={32} />
-                  <p className="font-bold text-slate-600 text-sm">Upload License</p>
+                  <p className="font-bold text-slate-600 text-sm">Drag & Drop or Click</p>
                   <p className="text-xs text-slate-400 mt-1">PDF, JPG or PNG (Max 5MB)</p>
-                </>
-              )}
-            </label>
+                </div>
+            )}
+            {documents.license && (
+                <button 
+                    onClick={(e) => { e.preventDefault(); removeFile('license'); }}
+                    className="absolute top-2 right-2 p-1 bg-white rounded-full shadow hover:text-red-500 z-20"
+                >
+                    <X size={14} />
+                </button>
+            )}
           </div>
           {errors.license && (
             <div className="mt-2 text-xs text-red-600 flex items-center gap-1">
@@ -147,7 +164,7 @@ export const VendorKYCForm: React.FC<VendorKYCFormProps> = ({ onSuccess }) => {
         onClick={handleSubmit}
         className="w-full py-4 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2"
       >
-        {isSubmitting ? 'Uploading Documents...' : 'Submit Documents for Verification'}
+        {isSubmitting ? <><Loader2 className="animate-spin" size={20} /> Processing...</> : 'Submit Documents for Verification'}
       </button>
     </div>
   );
