@@ -1,11 +1,23 @@
 import React, { useState } from 'react';
 import { CITIES } from '../constants';
 import { ShieldAlert, CheckCircle2, Building2, User, MapPin, Mail, Lock } from 'lucide-react';
+import { z } from 'zod';
 
 interface MarketAdminApplicationFormProps {
   onCancel: () => void;
   onSubmit: (data: any) => void;
 }
+
+// Zod Schema for Admin
+const adminSchema = z.object({
+  businessName: z.string().min(3, "Business/Entity Name is too short"),
+  contactPerson: z.string().min(3, "Contact Person Name is required"),
+  email: z.string().email("Invalid email").refine(val => val.endsWith('@mmis.tevas.ug'), {
+    message: "Restricted Access: Must use an official @mmis.tevas.ug domain"
+  }),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  cityId: z.string().min(1, "Please select a target city"),
+});
 
 export const MarketAdminApplicationForm: React.FC<MarketAdminApplicationFormProps> = ({ onCancel, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -15,24 +27,36 @@ export const MarketAdminApplicationForm: React.FC<MarketAdminApplicationFormProp
     password: '',
     cityId: ''
   });
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [globalError, setGlobalError] = useState('');
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    setError('');
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+    setGlobalError('');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Domain Validation
-    if (!formData.email.endsWith('@mmis.tevas.ug')) {
-      setError('Access Restricted: Market Admin accounts must use an official "@mmis.tevas.ug" email domain.');
-      return;
-    }
+    // Validate with Zod
+    const result = adminSchema.safeParse(formData);
 
-    if (!formData.businessName || !formData.contactPerson || !formData.cityId || !formData.password) {
-      setError('Please fill in all required fields.');
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach(issue => {
+        if (issue.path[0]) {
+          fieldErrors[issue.path[0].toString()] = issue.message;
+        }
+      });
+      setErrors(fieldErrors);
+      setGlobalError('Please fix the validation errors.');
       return;
     }
 
@@ -52,10 +76,10 @@ export const MarketAdminApplicationForm: React.FC<MarketAdminApplicationFormProp
         </p>
       </div>
 
-      {error && (
+      {globalError && (
         <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-start gap-2">
           <ShieldAlert size={16} className="mt-0.5 shrink-0" />
-          {error}
+          {globalError}
         </div>
       )}
 
@@ -65,10 +89,11 @@ export const MarketAdminApplicationForm: React.FC<MarketAdminApplicationFormProp
           <input 
             type="text" 
             placeholder="Official Business/Entity Name" 
-            className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+            className={`w-full pl-10 pr-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${errors.businessName ? 'border-red-500 bg-red-50' : 'border-slate-300'}`}
             value={formData.businessName}
             onChange={(e) => handleChange('businessName', e.target.value)}
           />
+          {errors.businessName && <p className="text-xs text-red-500 mt-1 ml-1">{errors.businessName}</p>}
         </div>
 
         <div className="relative">
@@ -76,10 +101,11 @@ export const MarketAdminApplicationForm: React.FC<MarketAdminApplicationFormProp
           <input 
             type="text" 
             placeholder="Contact Person Name" 
-            className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+            className={`w-full pl-10 pr-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${errors.contactPerson ? 'border-red-500 bg-red-50' : 'border-slate-300'}`}
             value={formData.contactPerson}
             onChange={(e) => handleChange('contactPerson', e.target.value)}
           />
+          {errors.contactPerson && <p className="text-xs text-red-500 mt-1 ml-1">{errors.contactPerson}</p>}
         </div>
 
         <div className="relative">
@@ -87,10 +113,11 @@ export const MarketAdminApplicationForm: React.FC<MarketAdminApplicationFormProp
           <input 
             type="email" 
             placeholder="Official Email (@mmis.tevas.ug)" 
-            className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+            className={`w-full pl-10 pr-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${errors.email ? 'border-red-500 bg-red-50' : 'border-slate-300'}`}
             value={formData.email}
             onChange={(e) => handleChange('email', e.target.value)}
           />
+          {errors.email && <p className="text-xs text-red-500 mt-1 ml-1">{errors.email}</p>}
         </div>
 
         <div className="relative">
@@ -98,10 +125,11 @@ export const MarketAdminApplicationForm: React.FC<MarketAdminApplicationFormProp
           <input 
             type="password" 
             placeholder="Set Password" 
-            className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+            className={`w-full pl-10 pr-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${errors.password ? 'border-red-500 bg-red-50' : 'border-slate-300'}`}
             value={formData.password}
             onChange={(e) => handleChange('password', e.target.value)}
           />
+          {errors.password && <p className="text-xs text-red-500 mt-1 ml-1">{errors.password}</p>}
         </div>
 
         <div className="relative">
@@ -109,11 +137,12 @@ export const MarketAdminApplicationForm: React.FC<MarketAdminApplicationFormProp
           <select 
             value={formData.cityId}
             onChange={(e) => handleChange('cityId', e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+            className={`w-full pl-10 pr-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none bg-white ${errors.cityId ? 'border-red-500 bg-red-50' : 'border-slate-300'}`}
           >
             <option value="">Select Target City</option>
             {CITIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
+          {errors.cityId && <p className="text-xs text-red-500 mt-1 ml-1">{errors.cityId}</p>}
         </div>
       </div>
 

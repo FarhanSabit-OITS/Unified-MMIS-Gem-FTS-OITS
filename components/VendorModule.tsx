@@ -30,7 +30,8 @@ import {
   Loader2,
   Briefcase,
   Mail,
-  Phone
+  Phone,
+  StickyNote
 } from 'lucide-react';
 import { Button } from './ui/Button';
 
@@ -52,7 +53,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   
   // Modals
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
-  const [activeModalTab, setActiveModalTab] = useState<'OVERVIEW' | 'DUES' | 'DOCUMENTS'>('OVERVIEW');
+  const [activeModalTab, setActiveModalTab] = useState<'OVERVIEW' | 'DUES' | 'DOCUMENTS' | 'NOTES'>('OVERVIEW');
   const [qrModalVendor, setQrModalVendor] = useState<Vendor | null>(null);
   
   // Payment
@@ -511,6 +512,14 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                 >
                     <FileText size={14} /> Documents
                 </button>
+                {isAdmin && (
+                  <button 
+                      onClick={() => setActiveModalTab('NOTES')}
+                      className={`py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeModalTab === 'NOTES' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+                  >
+                      <StickyNote size={14} /> Admin Notes
+                  </button>
+                )}
             </div>
 
             <div className="p-6 space-y-6 overflow-y-auto">
@@ -545,39 +554,6 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                                 <span className="text-sm font-medium text-slate-700">{selectedVendor.email || 'N/A'}</span>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Admin Notes */}
-                    <div className="bg-yellow-50/50 rounded-lg border border-yellow-100 p-4">
-                        <div className="flex justify-between items-center mb-2">
-                            <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                                <FileText size={16} className="text-yellow-600" /> Admin Notes
-                            </h4>
-                            {isAdmin && !isEditingNote && (
-                                <button onClick={() => setIsEditingNote(true)} className="text-xs text-blue-600 font-bold hover:underline">Edit</button>
-                            )}
-                        </div>
-                        {isEditingNote ? (
-                            <div className="space-y-2">
-                                <textarea 
-                                    className="w-full p-2 text-sm border border-yellow-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                                    rows={3}
-                                    value={noteDraft}
-                                    onChange={(e) => setNoteDraft(e.target.value)}
-                                    placeholder="Add notes about this vendor..."
-                                />
-                                <div className="flex gap-2 justify-end">
-                                    <button onClick={() => setIsEditingNote(false)} className="text-xs text-slate-500 hover:text-slate-800 font-medium">Cancel</button>
-                                    <button onClick={handleSaveNote} className="flex items-center gap-1 text-xs bg-yellow-600 text-white px-2 py-1 rounded font-bold hover:bg-yellow-700">
-                                        <Save size={12} /> Save
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <p className="text-sm text-slate-600 italic">
-                                {selectedVendor.notes || "No notes available."}
-                            </p>
-                        )}
                     </div>
 
                     <div>
@@ -669,6 +645,44 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                            </table>
                        </div>
                    </div>
+               ) : activeModalTab === 'NOTES' && isAdmin ? (
+                  /* ADMIN NOTES TAB */
+                  <div className="space-y-4">
+                      <div className="bg-yellow-50/50 rounded-lg border border-yellow-100 p-4">
+                        <div className="flex justify-between items-center mb-2">
+                            <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                <FileText size={16} className="text-yellow-600" /> Administrative Records
+                            </h4>
+                            {!isEditingNote && (
+                                <button onClick={() => setIsEditingNote(true)} className="text-xs text-blue-600 font-bold hover:underline">Edit Notes</button>
+                            )}
+                        </div>
+                        {isEditingNote ? (
+                            <div className="space-y-2">
+                                <textarea 
+                                    className="w-full p-2 text-sm border border-yellow-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-yellow-400 min-h-[150px]"
+                                    rows={5}
+                                    value={noteDraft}
+                                    onChange={(e) => setNoteDraft(e.target.value)}
+                                    placeholder="Add notes regarding vendor compliance, special requests, or behavioral flags..."
+                                />
+                                <div className="flex gap-2 justify-end">
+                                    <button onClick={() => setIsEditingNote(false)} className="text-xs text-slate-500 hover:text-slate-800 font-medium">Cancel</button>
+                                    <button onClick={handleSaveNote} className="flex items-center gap-1 text-xs bg-yellow-600 text-white px-2 py-1 rounded font-bold hover:bg-yellow-700">
+                                        <Save size={12} /> Save
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-sm text-slate-600 bg-white p-3 rounded border border-yellow-100 min-h-[100px] whitespace-pre-wrap">
+                                {selectedVendor.notes || <span className="text-slate-400 italic">No administrative notes available for this vendor.</span>}
+                            </div>
+                        )}
+                        <p className="text-[10px] text-slate-400 mt-2">
+                            * Changes to these notes are logged in the system audit trail.
+                        </p>
+                    </div>
+                  </div>
                ) : (
                   /* DOCUMENTS TAB */
                   <div className="space-y-4">
