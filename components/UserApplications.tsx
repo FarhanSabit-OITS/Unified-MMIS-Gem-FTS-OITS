@@ -5,11 +5,11 @@ import { MarketAdminApplicationForm } from './MarketAdminApplicationForm';
 import { ApiService } from '../services/api';
 import { 
   FileText, Clock, CheckCircle2, XCircle, Building2, MapPin, Calendar,
-  AlertCircle, Plus, Store, Briefcase, Loader2
+  AlertCircle, Plus, Store, Briefcase, Loader2, ArrowLeft
 } from 'lucide-react';
 
 export const UserApplications: React.FC = () => {
-  const [view, setView] = useState<'LIST' | 'NEW_VENDOR' | 'NEW_ADMIN'>('LIST');
+  const [view, setView] = useState<'LIST' | 'NEW_VENDOR' | 'NEW_ADMIN' | 'SUCCESS_VENDOR'>('LIST');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Mock Data for User Applications (In real app, fetch via useEffect)
@@ -36,11 +36,19 @@ export const UserApplications: React.FC = () => {
     try {
         const formData = new FormData();
         formData.append('type', type);
-        Object.keys(data).forEach(key => {
-            if (key !== 'kycFile') formData.append(key, data[key]);
-        });
-        // Append File safely
-        if (data.kycFile) formData.append('kycDocument', data.kycFile);
+        
+        // Handle different data structures
+        if (type === 'VENDOR' && data.documents) {
+            // Flatten vendor data
+            Object.keys(data).forEach(key => {
+                if (key !== 'documents') formData.append(key, data[key]);
+            });
+            if (data.documents.nid) formData.append('nidDocument', data.documents.nid);
+            if (data.documents.license) formData.append('licenseDocument', data.documents.license);
+        } else {
+            // Handle Admin data
+            Object.keys(data).forEach(key => formData.append(key, data[key]));
+        }
 
         // API Call
         await ApiService.applications.submit(formData);
@@ -62,7 +70,12 @@ export const UserApplications: React.FC = () => {
             ]
         };
         setApplications([newApp, ...applications]);
-        setView('LIST');
+        
+        if (type === 'VENDOR') {
+            setView('SUCCESS_VENDOR');
+        } else {
+            setView('LIST');
+        }
     } catch (err) {
         alert("Application submission failed. Please try again.");
     } finally {
@@ -85,6 +98,35 @@ export const UserApplications: React.FC = () => {
       default: return <Clock size={18} />;
     }
   };
+
+  if (view === 'SUCCESS_VENDOR') {
+      return (
+        <div className="max-w-lg mx-auto py-12 text-center animate-in zoom-in-95">
+            <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                <CheckCircle2 size={48} />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 mb-2">KYC Pending</h2>
+            <p className="text-slate-500 mb-8 leading-relaxed">
+                Your application has been successfully submitted. Your KYC documents (ID and License) are currently under review by our compliance team. You will be notified once the verification is complete.
+            </p>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-8">
+                <div className="flex justify-between items-center text-sm mb-2">
+                    <span className="text-slate-500 font-bold">Status</span>
+                    <span className="text-amber-600 font-bold bg-amber-50 px-2 py-1 rounded border border-amber-100">Under Review</span>
+                </div>
+                <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                    <div className="bg-amber-500 h-full w-1/3 animate-pulse"></div>
+                </div>
+            </div>
+            <button 
+                onClick={() => setView('LIST')}
+                className="text-blue-600 font-bold hover:text-blue-700 flex items-center justify-center gap-2 mx-auto"
+            >
+                <ArrowLeft size={16} /> Return to Applications
+            </button>
+        </div>
+      );
+  }
 
   if (view === 'NEW_VENDOR') {
     return (
