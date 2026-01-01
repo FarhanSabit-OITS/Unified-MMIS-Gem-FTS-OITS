@@ -3,6 +3,7 @@ import { Vendor, UserRole, Transaction } from '../types';
 import { MOCK_VENDORS, CITIES, MARKETS, MOCK_TRANSACTIONS } from '../constants';
 import { ApiService } from '../services/api';
 import { PaymentGateway } from './PaymentGateway';
+import { VendorKYCForm } from './VendorKYCForm'; // Imported Reusable Component
 import { 
   Search, 
   QrCode, 
@@ -30,7 +31,9 @@ import {
   User,
   ShieldAlert,
   Layers,
-  Banknote
+  Banknote,
+  DollarSign,
+  Tag
 } from 'lucide-react';
 import { Button } from './ui/Button';
 
@@ -73,14 +76,17 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   // --- Add Vendor Modal State ---
   const [showAddVendorModal, setShowAddVendorModal] = useState(false);
   const [addVendorStep, setAddVendorStep] = useState<'FORM' | 'SUCCESS'>('FORM');
-  const [addVendorFile, setAddVendorFile] = useState<File | null>(null);
-  const [addFileError, setAddFileError] = useState('');
+  
+  // Replaced single file state with reusable component state
+  const [kycDocs, setKycDocs] = useState<{ nid: File | null; license: File | null }>({ nid: null, license: null });
+  const [isKycValid, setIsKycValid] = useState(false);
+  
   const [isSubmittingNewVendor, setIsSubmittingNewVendor] = useState(false);
   const [newVendorData, setNewVendorData] = useState({
     name: '', shopNumber: '', marketId: marketId || '', email: '', phone: '',
     rentDue: 0, vatDue: 0, status: 'ACTIVE' as 'ACTIVE' | 'SUSPENDED',
-    kycVerified: false, gender: 'MALE' as 'MALE' | 'FEMALE', age: 0,
-    city: '', level: '', section: '', storeType: 'Retail', ownershipType: 'Sole Proprietorship'
+    kycVerified: false, gender: 'MALE' as 'MALE' | 'FEMALE', age: 30,
+    cityId: '', level: '', section: '', storeType: 'Retail', ownershipType: 'Sole Proprietorship'
   });
 
   const isAdmin = userRole === UserRole.SUPER_ADMIN || userRole === UserRole.MARKET_ADMIN;
@@ -115,9 +121,11 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                           v.shopNumber.toLowerCase().includes(term);
                           
     const matchesStatus = statusFilter === 'ALL' || v.status === statusFilter;
+    
+    // Market Filter (Target Market)
     const matchesMarket = selectedMarket ? v.marketId === selectedMarket : true;
     
-    // City filter logic (indirect relationship via market)
+    // City filter logic (indirect relationship via market or explicit field)
     const market = MARKETS.find(m => m.id === v.marketId);
     const matchesCity = selectedCity ? market?.cityId === selectedCity : true;
 
@@ -130,7 +138,11 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
     return matchesSearch && matchesStatus && matchesMarket && matchesCity && matchesRent;
   });
 
-  const availableMarkets = MARKETS.filter(m => !selectedCity || m.cityId === selectedCity);
+  // Calculate available markets for filters based on selected city
+  const availableMarketsForFilter = MARKETS.filter(m => !selectedCity || m.cityId === selectedCity);
+  
+  // Calculate available markets for Add Form based on selected city in form
+  const availableMarketsForForm = MARKETS.filter(m => !newVendorData.cityId || m.cityId === newVendorData.cityId);
 
   // --- Dues History Logic ---
   const vendorTransactions = selectedVendor 
@@ -152,6 +164,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
     });
 
   const getMarketName = (id: string) => MARKETS.find(m => m.id === id)?.name || id;
+  const getCityName = (id: string) => CITIES.find(c => c.id === id)?.name || id;
 
   // --- Handlers & Audit ---
   
@@ -215,56 +228,49 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   };
 
   // --- Add Vendor Logic ---
-  const handleAddFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAddFileError('');
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-      if (!validTypes.includes(file.type)) {
-        setAddFileError('Invalid file type. Use JPG, PNG, or PDF.');
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        setAddFileError('File size exceeds 5MB limit.');
-        return;
-      }
-      setAddVendorFile(file);
-    }
-  };
-
   const handleSubmitNewVendor = (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!newVendorData.name || !newVendorData.shopNumber || !newVendorData.marketId) {
       alert("Please fill in required fields (Name, Shop, Market)");
       return;
     }
-    if (!addVendorFile) {
-      setAddFileError("KYC Document is required.");
+    
+    if (!isKycValid) {
+      alert("Please upload valid KYC documents (ID and License) before proceeding.");
       return;
     }
+
     setIsSubmittingNewVendor(true);
+    
+    // Simulate API delay
     setTimeout(() => {
       setIsSubmittingNewVendor(false);
+      
+      const cityName = getCityName(newVendorData.cityId);
+      
       const newVendor: Vendor = {
         id: `v${Date.now()}`,
         name: newVendorData.name,
         shopNumber: newVendorData.shopNumber,
         marketId: newVendorData.marketId,
         status: newVendorData.status,
-        rentDue: newVendorData.rentDue,
-        vatDue: newVendorData.vatDue,
+        rentDue: Number(newVendorData.rentDue),
+        vatDue: Number(newVendorData.vatDue),
         gender: newVendorData.gender,
-        age: newVendorData.age || 30,
+        age: Number(newVendorData.age) || 30,
         productsCount: 0,
-        kycVerified: false,
-        notes: 'New application pending review.',
+        kycVerified: false, // Starts unverified until admin actually checks docs (flow simulation)
+        notes: 'New registration pending final review.',
         storeType: newVendorData.storeType,
         ownershipType: newVendorData.ownershipType,
         level: newVendorData.level,
         section: newVendorData.section,
         email: newVendorData.email,
-        phone: newVendorData.phone
+        phone: newVendorData.phone,
+        city: cityName
       };
+      
       setVendors(prev => [newVendor, ...prev]);
       setAddVendorStep('SUCCESS');
       logAuditAction('CREATE_VENDOR', newVendor.name, 'Registered new vendor via dashboard.');
@@ -274,8 +280,14 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   const resetAddVendorModal = () => {
     setShowAddVendorModal(false);
     setAddVendorStep('FORM');
-    setAddVendorFile(null);
-    setNewVendorData({ name: '', shopNumber: '', marketId: isMarketAdmin && marketId ? marketId : '', email: '', phone: '', rentDue: 0, vatDue: 0, status: 'ACTIVE', kycVerified: false, gender: 'MALE', age: 0, city: '', level: '', section: '', storeType: 'Retail', ownershipType: 'Sole Proprietorship' });
+    setKycDocs({ nid: null, license: null });
+    setIsKycValid(false);
+    setNewVendorData({ 
+        name: '', shopNumber: '', marketId: isMarketAdmin && marketId ? marketId : '', 
+        email: '', phone: '', rentDue: 0, vatDue: 0, status: 'ACTIVE', 
+        kycVerified: false, gender: 'MALE', age: 30, cityId: '', level: '', 
+        section: '', storeType: 'Retail', ownershipType: 'Sole Proprietorship' 
+    });
   };
 
   return (
@@ -315,14 +327,15 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
               </select>
             )}
 
-            {(!isMarketAdmin && selectedCity) && (
+            {/* Target Market Filter */}
+            {(!isMarketAdmin) && (
                 <select 
                 className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 shrink-0 outline-none focus:ring-2 focus:ring-blue-500"
                 value={selectedMarket}
                 onChange={(e) => setSelectedMarket(e.target.value)}
             >
                 <option value="">All Markets</option>
-                {availableMarkets.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                {availableMarketsForFilter.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
             )}
 
@@ -439,7 +452,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                          <button 
                             onClick={(e) => handleToggleDues(vendor.id, vendor.name, 'FLAG_AUDIT', e)}
                             className="p-1.5 rounded-lg transition-all border border-slate-200 text-slate-500 hover:text-orange-600 hover:bg-orange-50 hover:border-orange-200" 
-                            title="Initiate Deep-Dive Audit"
+                            title="Initiate Audit"
                          >
                            <Gavel size={14} />
                          </button>
@@ -629,7 +642,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                                    <option value="PAID">Paid</option>
                                    <option value="PENDING">Pending</option>
                                    <option value="OVERDUE">Overdue</option>
-                               </select>
+                                </select>
                                <select value={duesTypeFilter} onChange={(e) => setDuesTypeFilter(e.target.value)} className="text-xs border border-slate-200 rounded-lg px-2 py-2 bg-white outline-none flex-1">
                                    <option value="ALL">All Types</option>
                                    <option value="RENT">Rent</option>
@@ -739,53 +752,152 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
         </div>
       )}
 
-      {/* Add Vendor Modal and QR Modal are handled similarly... */}
+      {/* Add Vendor Modal */}
       {showAddVendorModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95">
               <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                   <div>
                     <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2"><UserPlus size={20} className="text-indigo-600" /> Add New Vendor</h3>
-                    <p className="text-xs text-slate-500">Register a new vendor and allocate shop space.</p>
+                    <p className="text-xs text-slate-500">Complete vendor profile and attach KYC documents.</p>
                   </div>
                   <button onClick={resetAddVendorModal} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
               </div>
               {addVendorStep === 'FORM' ? (
                 <div className="p-6 overflow-y-auto">
                     <form onSubmit={handleSubmitNewVendor} className="space-y-6">
-                        {/* Simplification: Form fields remain as provided previously */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="col-span-2 sm:col-span-1"><label className="block text-xs font-bold text-slate-500 mb-1">Full Name *</label><input required type="text" className="w-full px-3 py-2 border rounded-lg text-sm" value={newVendorData.name} onChange={e => setNewVendorData({...newVendorData, name: e.target.value})} /></div>
-                            <div className="col-span-2 sm:col-span-1"><label className="block text-xs font-bold text-slate-500 mb-1">Shop Number *</label><input required type="text" className="w-full px-3 py-2 border rounded-lg text-sm" value={newVendorData.shopNumber} onChange={e => setNewVendorData({...newVendorData, shopNumber: e.target.value})} /></div>
-                            
-                            <div className="col-span-2">
-                                <label className="block text-xs font-bold text-slate-500 mb-1">Market *</label>
-                                {isMarketAdmin && marketId ? (
-                                    <input 
-                                        type="text" 
-                                        className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-100 text-slate-600 cursor-not-allowed" 
-                                        value={getMarketName(marketId)} 
-                                        readOnly 
-                                        title="You can only add vendors to your assigned market"
-                                    />
-                                ) : (
-                                    <select 
-                                        required 
-                                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white" 
-                                        value={newVendorData.marketId} 
-                                        onChange={e => setNewVendorData({...newVendorData, marketId: e.target.value})}
-                                    >
-                                        <option value="">Select Market</option>
-                                        {MARKETS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                        
+                        {/* Section 1: Core Identity */}
+                        <div>
+                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">Core Information</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2 sm:col-span-1">
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Full Name *</label>
+                                    <input required type="text" className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={newVendorData.name} onChange={e => setNewVendorData({...newVendorData, name: e.target.value})} />
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Gender</label>
+                                    <select className="w-full px-3 py-2 border rounded-lg text-sm bg-white" value={newVendorData.gender} onChange={e => setNewVendorData({...newVendorData, gender: e.target.value as any})}>
+                                        <option value="MALE">Male</option>
+                                        <option value="FEMALE">Female</option>
                                     </select>
-                                )}
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Age</label>
+                                    <input type="number" className="w-full px-3 py-2 border rounded-lg text-sm" value={newVendorData.age} onChange={e => setNewVendorData({...newVendorData, age: parseInt(e.target.value)})} />
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Phone</label>
+                                    <input type="text" className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="+256..." value={newVendorData.phone} onChange={e => setNewVendorData({...newVendorData, phone: e.target.value})} />
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Email</label>
+                                    <input type="email" className="w-full px-3 py-2 border rounded-lg text-sm" value={newVendorData.email} onChange={e => setNewVendorData({...newVendorData, email: e.target.value})} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Section 2: Shop & Location */}
+                        <div>
+                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4 flex items-center gap-2"><Building2 size={14}/> Shop Allocation</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2 sm:col-span-1">
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Shop Number *</label>
+                                    <input required type="text" className="w-full px-3 py-2 border rounded-lg text-sm" value={newVendorData.shopNumber} onChange={e => setNewVendorData({...newVendorData, shopNumber: e.target.value})} />
+                                </div>
+                                
+                                {/* New City Dropdown */}
+                                <div className="col-span-1">
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">City</label>
+                                    {!isMarketAdmin ? (
+                                        <select 
+                                            className="w-full px-3 py-2 border rounded-lg text-sm bg-white" 
+                                            value={newVendorData.cityId} 
+                                            onChange={e => setNewVendorData({...newVendorData, cityId: e.target.value, marketId: ''})}
+                                        >
+                                            <option value="">Select City</option>
+                                            {CITIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                    ) : (
+                                        <input type="text" className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-100 text-slate-500 cursor-not-allowed" value="Current City" readOnly />
+                                    )}
+                                </div>
+
+                                <div className="col-span-2 sm:col-span-1">
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Market *</label>
+                                    {isMarketAdmin && marketId ? (
+                                        <input type="text" className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-100 text-slate-600 cursor-not-allowed" value={getMarketName(marketId)} readOnly />
+                                    ) : (
+                                        <select 
+                                            required 
+                                            className="w-full px-3 py-2 border rounded-lg text-sm bg-white disabled:bg-slate-100" 
+                                            value={newVendorData.marketId} 
+                                            onChange={e => setNewVendorData({...newVendorData, marketId: e.target.value})}
+                                            disabled={!newVendorData.cityId && !isMarketAdmin}
+                                        >
+                                            <option value="">Select Market</option>
+                                            {availableMarketsForForm.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                        </select>
+                                    )}
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Store Level</label>
+                                    <input type="text" className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="e.g. L1" value={newVendorData.level} onChange={e => setNewVendorData({...newVendorData, level: e.target.value})} />
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Section</label>
+                                    <input type="text" className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="e.g. Textile" value={newVendorData.section} onChange={e => setNewVendorData({...newVendorData, section: e.target.value})} />
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Store Type</label>
+                                    <select className="w-full px-3 py-2 border rounded-lg text-sm bg-white" value={newVendorData.storeType} onChange={e => setNewVendorData({...newVendorData, storeType: e.target.value})}>
+                                        <option>Retail</option>
+                                        <option>Wholesale</option>
+                                        <option>Service</option>
+                                    </select>
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Ownership</label>
+                                    <select className="w-full px-3 py-2 border rounded-lg text-sm bg-white" value={newVendorData.ownershipType} onChange={e => setNewVendorData({...newVendorData, ownershipType: e.target.value})}>
+                                        <option>Sole Proprietorship</option>
+                                        <option>Partnership</option>
+                                        <option>Limited Company</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Section 3: Financials & Status */}
+                        <div>
+                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4 flex items-center gap-2"><DollarSign size={14}/> Financials & Status</h4>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Rent Due</label>
+                                    <input type="number" className="w-full px-3 py-2 border rounded-lg text-sm" value={newVendorData.rentDue} onChange={e => setNewVendorData({...newVendorData, rentDue: parseFloat(e.target.value)})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">VAT Due</label>
+                                    <input type="number" className="w-full px-3 py-2 border rounded-lg text-sm" value={newVendorData.vatDue} onChange={e => setNewVendorData({...newVendorData, vatDue: parseFloat(e.target.value)})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Status</label>
+                                    <select className="w-full px-3 py-2 border rounded-lg text-sm bg-white" value={newVendorData.status} onChange={e => setNewVendorData({...newVendorData, status: e.target.value as any})}>
+                                        <option value="ACTIVE">Active</option>
+                                        <option value="SUSPENDED">Suspended</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         
-                        <div className="p-4 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 text-center">
-                            <input type="file" id="modal-kyc-upload" className="hidden" accept=".jpg,.png,.pdf" onChange={handleAddFileChange} />
-                            <label htmlFor="modal-kyc-upload" className="cursor-pointer">{addVendorFile ? <div className="flex items-center justify-center gap-2 text-green-600 font-bold"><CheckCircle size={20} />{addVendorFile.name}</div> : <div className="flex flex-col items-center gap-1 text-slate-500"><Upload size={24} className="mb-1" /><span className="font-bold text-sm">Upload KYC Document *</span><span className="text-xs">ID or License (Max 5MB)</span></div>}</label>
-                            {addFileError && <p className="text-xs text-red-500 mt-2 font-bold">{addFileError}</p>}
+                        {/* Section 4: KYC Uploads via Reusable Component */}
+                        <div>
+                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4 flex items-center gap-2"><ShieldAlert size={14}/> KYC Verification</h4>
+                            <VendorKYCForm 
+                                onFilesChange={(files, isValid) => {
+                                    setKycDocs(files);
+                                    setIsKycValid(isValid);
+                                }}
+                            />
                         </div>
 
                         <div className="flex gap-3 pt-4 border-t border-slate-100">
@@ -797,7 +909,14 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
               ) : (
                 <div className="p-10 flex flex-col items-center justify-center text-center animate-in zoom-in">
                     <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-sm"><CheckCircle size={48} /></div>
-                    <h3 className="text-2xl font-black text-slate-900 mb-2">Registration Successful</h3>
+                    <h3 className="text-2xl font-black text-slate-900 mb-2">Application Submitted</h3>
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 mb-4 inline-flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                        <span className="text-amber-800 font-bold text-sm uppercase tracking-wide">KYC Pending</span>
+                    </div>
+                    <p className="text-slate-500 mb-6 text-sm max-w-xs mx-auto">
+                        Vendor has been added to the registry. Full access is restricted until KYC documents are verified by a Market Administrator.
+                    </p>
                     <Button onClick={resetAddVendorModal} className="w-full max-w-xs">Return to Dashboard</Button>
                 </div>
               )}
