@@ -92,6 +92,8 @@ export interface Vendor {
   section?: string;
   storeType?: string;
   ownershipType?: string;
+  email?: string;
+  phone?: string;
 }
 
 export interface Supplier {

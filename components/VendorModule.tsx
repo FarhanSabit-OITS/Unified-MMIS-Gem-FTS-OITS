@@ -28,7 +28,9 @@ import {
   Building2,
   CheckCircle2,
   Loader2,
-  Briefcase
+  Briefcase,
+  Mail,
+  Phone
 } from 'lucide-react';
 import { Button } from './ui/Button';
 
@@ -174,7 +176,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
     e.stopPropagation();
     
     if (action === 'MARK_PAID') {
-        // Instead of instant clear, trigger payment gateway flow
+        // Trigger payment gateway flow for the rent amount
         const v = vendors.find(ven => ven.id === vendorId);
         if(v) setPaymentVendor({ id: v.id, amount: v.rentDue, name: v.name });
     } else if (action === 'FLAG_AUDIT') {
@@ -256,7 +258,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
     setTimeout(() => {
       setIsSubmittingNewVendor(false);
       
-      // Create Mock Vendor
+      // Create Mock Vendor with all details including contact info
       const newVendor: Vendor = {
         id: `v${Date.now()}`,
         name: newVendorData.name,
@@ -273,7 +275,9 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
         storeType: newVendorData.storeType,
         ownershipType: newVendorData.ownershipType,
         level: newVendorData.level,
-        section: newVendorData.section
+        section: newVendorData.section,
+        email: newVendorData.email,
+        phone: newVendorData.phone
       };
 
       setVendors(prev => [newVendor, ...prev]);
@@ -512,6 +516,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
             <div className="p-6 space-y-6 overflow-y-auto">
                {activeModalTab === 'OVERVIEW' ? (
                    <>
+                    {/* Financial & Stock Summary */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 bg-slate-50 rounded-lg">
                             <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Rent Due</div>
@@ -523,6 +528,26 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                         </div>
                     </div>
 
+                    {/* Contact Details */}
+                    <div className="bg-white border border-slate-100 rounded-lg p-4 shadow-sm">
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Contact Information</h4>
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                    <Phone size={16} />
+                                </div>
+                                <span className="text-sm font-medium text-slate-700">{selectedVendor.phone || 'N/A'}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                    <Mail size={16} />
+                                </div>
+                                <span className="text-sm font-medium text-slate-700">{selectedVendor.email || 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Admin Notes */}
                     <div className="bg-yellow-50/50 rounded-lg border border-yellow-100 p-4">
                         <div className="flex justify-between items-center mb-2">
                             <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
