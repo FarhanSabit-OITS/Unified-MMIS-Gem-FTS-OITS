@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserRole, Transaction } from '../types';
-import { MOCK_TRANSACTIONS } from '../constants';
+import { MOCK_TRANSACTIONS, MOCK_VENDORS } from '../constants';
 import { 
   DollarSign, Download, CreditCard, Wallet, ArrowUpRight, ArrowDownLeft, 
   PieChart, TrendingUp, Lock, Filter, Calendar, Check, X, AlertTriangle,
@@ -9,12 +9,14 @@ import {
 
 interface FinancialsModuleProps {
   role: UserRole;
+  marketId?: string;
 }
 
-export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role }) => {
+export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role, marketId }) => {
   const isVendor = role === UserRole.VENDOR;
   const isSupplier = role === UserRole.SUPPLIER;
   const isAdmin = role === UserRole.SUPER_ADMIN || role === UserRole.MARKET_ADMIN;
+  const isMarketAdmin = role === UserRole.MARKET_ADMIN;
 
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -23,6 +25,16 @@ export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role }) => {
 
   // Filter transactions
   const filteredTransactions = transactions.filter(tx => {
+    // 1. RBAC Scope
+    if (isMarketAdmin && marketId) {
+        // Find if transaction entity belongs to market
+        // Note: For demo, we link tx.entityId to vendor.id. In real app, check tx.marketId directly if available.
+        const vendor = MOCK_VENDORS.find(v => v.id === tx.entityId);
+        // Only show if vendor is in this market OR if it's a generic market transaction (mock logic needed here)
+        // For simplicity, strict vendor check:
+        if (!vendor || vendor.marketId !== marketId) return false;
+    }
+
     if (filterType !== 'ALL' && tx.type !== filterType) return false;
     
     if (isAdmin) return true;
@@ -40,11 +52,17 @@ export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role }) => {
 
   // --- ADMIN REVENUE DASHBOARD ---
   if (isAdmin) {
+      // Calculate revenue streams based on FILTERED transactions only
+      const calculateStream = (types: string[]) => 
+          filteredTransactions
+            .filter(t => types.includes(t.type) && t.status === 'PAID')
+            .reduce((acc, curr) => acc + curr.amount, 0);
+
       const revenueStreams = [
-          { label: 'Shop Rent', value: 45000000, icon: Building2, color: 'bg-blue-500' },
-          { label: 'Gate Fees', value: 8450000, icon: Truck, color: 'bg-emerald-500' },
-          { label: 'Fines/Penalties', value: 1200000, icon: Gavel, color: 'bg-red-500' },
-          { label: 'Utilities', value: 3500000, icon: Zap, color: 'bg-amber-500' },
+          { label: 'Shop Rent', value: calculateStream(['RENT']), icon: Building2, color: 'bg-blue-500' },
+          { label: 'Gate Fees', value: calculateStream(['GATE_FEE']), icon: Truck, color: 'bg-emerald-500' },
+          { label: 'Fines/Penalties', value: calculateStream(['FINE']), icon: Gavel, color: 'bg-red-500' },
+          { label: 'Utilities', value: calculateStream(['UTILITY']), icon: Zap, color: 'bg-amber-500' },
       ];
 
       const totalRevenue = revenueStreams.reduce((acc, curr) => acc + curr.value, 0);
@@ -56,7 +74,9 @@ export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role }) => {
             <div className="flex justify-between items-center">
                 <div>
                     <h2 className="text-3xl font-black text-slate-900 tracking-tight">Revenue Command Center</h2>
-                    <p className="text-slate-500 font-medium">Real-time financial oversight and audit.</p>
+                    <p className="text-slate-500 font-medium">
+                        {isMarketAdmin ? 'Market-Specific Financial Oversight' : 'Global Financial Oversight'}
+                    </p>
                 </div>
                 <div className="flex gap-2">
                     <button className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg font-bold text-sm hover:bg-slate-50">
@@ -103,7 +123,9 @@ export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role }) => {
                 <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
                         <div className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-4">Pending Audit</div>
-                        <div className="text-3xl font-black text-amber-600 mb-2">45</div>
+                        <div className="text-3xl font-black text-amber-600 mb-2">
+                            {filteredTransactions.filter(t => t.status === 'PENDING').length}
+                        </div>
                         <p className="text-xs text-slate-400">Transactions flagged for manual review.</p>
                     </div>
                     <button className="w-full py-3 bg-amber-50 text-amber-700 font-bold rounded-xl hover:bg-amber-100 transition mt-4 flex items-center justify-center gap-2">
@@ -125,7 +147,7 @@ export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role }) => {
                                 </div>
                                 <div>
                                     <div className="font-bold text-slate-800">{stream.label}</div>
-                                    <div className="text-xs text-slate-500">{Math.round((stream.value/totalRevenue)*100)}% Contribution</div>
+                                    <div className="text-xs text-slate-500">{totalRevenue > 0 ? Math.round((stream.value/totalRevenue)*100) : 0}% Contribution</div>
                                 </div>
                             </div>
                             <div className="text-right">
@@ -207,6 +229,9 @@ export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role }) => {
                                         </td>
                                     </tr>
                                 ))}
+                                {filteredTransactions.length === 0 && (
+                                    <tr><td colSpan={5} className="text-center py-8 text-slate-400 italic">No records found for this market context.</td></tr>
+                                )}
                             </tbody>
                         </table>
                     </div>

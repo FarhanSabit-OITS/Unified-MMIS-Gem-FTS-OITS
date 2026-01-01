@@ -4,7 +4,6 @@ import { MOCK_VENDORS, CITIES, MARKETS, MOCK_TRANSACTIONS } from '../constants';
 import { ApiService } from '../services/api';
 import { PaymentGateway } from './PaymentGateway';
 import { 
-  Filter, 
   Search, 
   QrCode, 
   Ban, 
@@ -38,9 +37,10 @@ import { Button } from './ui/Button';
 interface VendorModuleProps {
   userRole?: UserRole;
   currentUserId?: string;
+  marketId?: string;
 }
 
-export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.USER, currentUserId }) => {
+export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.USER, currentUserId, marketId }) => {
   // Use local state initialized with MOCK data to allow updates
   const [vendors, setVendors] = useState<Vendor[]>(MOCK_VENDORS);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,13 +77,14 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   const [addFileError, setAddFileError] = useState('');
   const [isSubmittingNewVendor, setIsSubmittingNewVendor] = useState(false);
   const [newVendorData, setNewVendorData] = useState({
-    name: '', shopNumber: '', marketId: '', email: '', phone: '',
+    name: '', shopNumber: '', marketId: marketId || '', email: '', phone: '',
     rentDue: 0, vatDue: 0, status: 'ACTIVE' as 'ACTIVE' | 'SUSPENDED',
     kycVerified: false, gender: 'MALE' as 'MALE' | 'FEMALE', age: 0,
     city: '', level: '', section: '', storeType: 'Retail', ownershipType: 'Sole Proprietorship'
   });
 
   const isAdmin = userRole === UserRole.SUPER_ADMIN || userRole === UserRole.MARKET_ADMIN;
+  const isMarketAdmin = userRole === UserRole.MARKET_ADMIN;
 
   // FETCH VENDORS
   useEffect(() => {
@@ -105,6 +106,10 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
 
   // --- Filtering Logic ---
   const filteredVendors = vendors.filter(v => {
+    // 1. RBAC Scope Filter
+    if (isMarketAdmin && marketId && v.marketId !== marketId) return false;
+
+    // 2. Toolbar Filters
     const term = searchTerm.toLowerCase();
     const matchesSearch = v.name.toLowerCase().includes(term) || 
                           v.shopNumber.toLowerCase().includes(term);
@@ -270,7 +275,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
     setShowAddVendorModal(false);
     setAddVendorStep('FORM');
     setAddVendorFile(null);
-    setNewVendorData({ name: '', shopNumber: '', marketId: '', email: '', phone: '', rentDue: 0, vatDue: 0, status: 'ACTIVE', kycVerified: false, gender: 'MALE', age: 0, city: '', level: '', section: '', storeType: 'Retail', ownershipType: 'Sole Proprietorship' });
+    setNewVendorData({ name: '', shopNumber: '', marketId: isMarketAdmin && marketId ? marketId : '', email: '', phone: '', rentDue: 0, vatDue: 0, status: 'ACTIVE', kycVerified: false, gender: 'MALE', age: 0, city: '', level: '', section: '', storeType: 'Retail', ownershipType: 'Sole Proprietorship' });
   };
 
   return (
@@ -299,16 +304,18 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
           </div>
           
           <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 w-full scrollbar-hide">
-            <select 
-                className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 shrink-0 outline-none focus:ring-2 focus:ring-blue-500"
-                value={selectedCity}
-                onChange={(e) => { setSelectedCity(e.target.value); setSelectedMarket(''); }}
-            >
-                <option value="">All Cities</option>
-                {CITIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            {!isMarketAdmin && (
+              <select 
+                  className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 shrink-0 outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedCity}
+                  onChange={(e) => { setSelectedCity(e.target.value); setSelectedMarket(''); }}
+              >
+                  <option value="">All Cities</option>
+                  {CITIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            )}
 
-            {selectedCity && (
+            {(!isMarketAdmin && selectedCity) && (
                 <select 
                 className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 shrink-0 outline-none focus:ring-2 focus:ring-blue-500"
                 value={selectedMarket}
@@ -750,8 +757,29 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                         <div className="grid grid-cols-2 gap-4">
                             <div className="col-span-2 sm:col-span-1"><label className="block text-xs font-bold text-slate-500 mb-1">Full Name *</label><input required type="text" className="w-full px-3 py-2 border rounded-lg text-sm" value={newVendorData.name} onChange={e => setNewVendorData({...newVendorData, name: e.target.value})} /></div>
                             <div className="col-span-2 sm:col-span-1"><label className="block text-xs font-bold text-slate-500 mb-1">Shop Number *</label><input required type="text" className="w-full px-3 py-2 border rounded-lg text-sm" value={newVendorData.shopNumber} onChange={e => setNewVendorData({...newVendorData, shopNumber: e.target.value})} /></div>
-                            {/* ... more fields ... */}
-                            <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 mb-1">Market *</label><select required className="w-full px-3 py-2 border rounded-lg text-sm bg-white" value={newVendorData.marketId} onChange={e => setNewVendorData({...newVendorData, marketId: e.target.value})}><option value="">Select Market</option>{MARKETS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+                            
+                            <div className="col-span-2">
+                                <label className="block text-xs font-bold text-slate-500 mb-1">Market *</label>
+                                {isMarketAdmin && marketId ? (
+                                    <input 
+                                        type="text" 
+                                        className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-100 text-slate-600 cursor-not-allowed" 
+                                        value={getMarketName(marketId)} 
+                                        readOnly 
+                                        title="You can only add vendors to your assigned market"
+                                    />
+                                ) : (
+                                    <select 
+                                        required 
+                                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white" 
+                                        value={newVendorData.marketId} 
+                                        onChange={e => setNewVendorData({...newVendorData, marketId: e.target.value})}
+                                    >
+                                        <option value="">Select Market</option>
+                                        {MARKETS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                    </select>
+                                )}
+                            </div>
                         </div>
                         
                         <div className="p-4 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 text-center">

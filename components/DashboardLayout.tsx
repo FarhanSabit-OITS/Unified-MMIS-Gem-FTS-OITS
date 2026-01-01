@@ -57,7 +57,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, setUser,
   const renderContent = () => {
     switch(currentView) {
       // Shared / Admin
-      case 'vendors': return <VendorModule userRole={user.role} currentUserId={user.id} />;
+      case 'vendors': return <VendorModule userRole={user.role} currentUserId={user.id} marketId={user.marketId} />;
       case 'suppliers': return <SuppliersNetwork userRole={user.role} userId={user.id} />;
       case 'tickets': return <TicketSystem userRole={user.role} marketId={user.marketId} />;
       case 'users': return <UserManagementModule currentUser={user} />;
@@ -68,7 +68,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, setUser,
       
       // Business Logic
       case 'myshop': return <MyShopModule isSupplier={isSupplier} />;
-      case 'financials': return <FinancialsModule role={user.role} />;
+      case 'financials': return <FinancialsModule role={user.role} marketId={user.marketId} />;
       case 'orders': return <OrdersModule user={user} />;
       case 'requisitions': return <SupplyRequisitions />;
       
@@ -82,7 +82,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, setUser,
       case 'qr': return <QRModule />;
       
       default: 
-        if (isAdmin) return <FinancialsModule role={user.role} />; // Default dashboard for admin
+        if (isAdmin) return <FinancialsModule role={user.role} marketId={user.marketId} />; // Default dashboard for admin
         if (isVendor) return <MyShopModule />;
         if (isSupplier) return <SuppliersNetwork userRole={user.role} userId={user.id} />;
         if (isGateStaff) return <GateManagementModule />;
