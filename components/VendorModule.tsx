@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Vendor, UserRole } from '../types';
+import { Vendor, UserRole, Transaction } from '../types';
 import { MOCK_VENDORS, CITIES, MARKETS, MOCK_TRANSACTIONS } from '../constants';
 import { ApiService } from '../services/api';
 import { PaymentGateway } from './PaymentGateway';
@@ -623,7 +623,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                            <div className="flex gap-2 shrink-0 flex-wrap">
                                <button onClick={() => setDuesSort(duesSort === 'DATE' ? 'AMOUNT' : 'DATE')} className="text-xs flex items-center gap-1 font-bold text-slate-600 bg-slate-100 px-3 py-2 rounded-lg hover:bg-slate-200 whitespace-nowrap">
                                    <ArrowUpDown size={12} /> {duesSort === 'DATE' ? 'Date' : 'Amount'}
-                               </button>
+                                </button>
                                <select value={duesFilter} onChange={(e) => setDuesFilter(e.target.value)} className="text-xs border border-slate-200 rounded-lg px-2 py-2 bg-white outline-none flex-1">
                                    <option value="ALL">All Status</option>
                                    <option value="PAID">Paid</option>
