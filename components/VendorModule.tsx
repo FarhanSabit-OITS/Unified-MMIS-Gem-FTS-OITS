@@ -157,6 +157,8 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
         return b.amount - a.amount;
     });
 
+  const getMarketName = (id: string) => MARKETS.find(m => m.id === id)?.name || id;
+
   // --- Handlers ---
   
   const logAuditAction = (action: string, vendorName: string, details: string) => {
@@ -530,13 +532,38 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                    <>
                     {/* Financial & Stock Summary */}
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 bg-slate-50 rounded-lg">
+                        <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
                             <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Rent Due</div>
-                            <div className="text-2xl font-bold text-slate-900">{selectedVendor.rentDue.toLocaleString()} UGX</div>
+                            <div className={`text-2xl font-bold ${selectedVendor.rentDue > 0 ? 'text-red-600' : 'text-slate-900'}`}>{selectedVendor.rentDue.toLocaleString()} UGX</div>
                         </div>
-                        <div className="p-4 bg-slate-50 rounded-lg">
+                        <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
                             <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Products</div>
                             <div className="text-2xl font-bold text-slate-900">{selectedVendor.productsCount}</div>
+                        </div>
+                    </div>
+
+                    {/* Location & Address Details */}
+                    <div className="bg-white border border-slate-100 rounded-lg p-4 shadow-sm">
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Location Details</h4>
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                                    <Building2 size={16} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-xs text-slate-500">Assigned Shop</span>
+                                    <span className="text-sm font-bold text-slate-900">{selectedVendor.shopNumber}</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                                    <MapPin size={16} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-xs text-slate-500">Market</span>
+                                    <span className="text-sm font-bold text-slate-900">{getMarketName(selectedVendor.marketId)}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

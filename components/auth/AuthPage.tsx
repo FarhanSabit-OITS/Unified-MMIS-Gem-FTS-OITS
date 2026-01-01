@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, User, Fingerprint, MessageSquare, Info, X, LayoutGrid, ArrowLeft, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, Fingerprint, MessageSquare, Info, X, LayoutGrid, ArrowLeft, Loader2, Phone } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -177,6 +177,9 @@ export const AuthPage = ({ onSuccess }: AuthPageProps) => {
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     New entity? <button onClick={() => setMode('SIGNUP')} className="text-indigo-600 hover:underline">Register Now</button>
                   </p>
+                  <button onClick={() => setMode('CONTACT')} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors">
+                    Contact Admin
+                  </button>
                 </div>
               </>
             )}
@@ -205,14 +208,51 @@ export const AuthPage = ({ onSuccess }: AuthPageProps) => {
 
                 <Button className="w-full h-14 font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-100 mb-6" onClick={handleAuth} loading={loading}>Dispatch Credentials</Button>
                 
-                <div className="text-center">
+                <div className="text-center flex flex-col gap-4">
                     <button 
                         onClick={() => setMode('LOGIN')} 
                         className="flex items-center justify-center gap-2 mx-auto text-xs text-indigo-600 hover:text-indigo-800 font-bold uppercase tracking-wide"
                     >
                         <ArrowLeft size={12} /> Back to Login
                     </button>
+                    <button onClick={() => setMode('CONTACT')} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors">
+                        Contact Admin
+                    </button>
                 </div>
+              </>
+            )}
+
+            {mode === 'CONTACT' && (
+              <>
+                <h2 className="text-xl font-black mb-8 text-center text-slate-800 tracking-tight">Contact Administration</h2>
+                
+                <div className="space-y-6 mb-8">
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-4">
+                        <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">
+                            <Mail size={20} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-sm text-slate-900">Email Support</h4>
+                            <p className="text-xs text-slate-500 mt-1">support@mmis.tevas.ug</p>
+                            <p className="text-[10px] text-slate-400 mt-1">Response time: 24h</p>
+                        </div>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-4">
+                        <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600">
+                            <Phone size={20} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-sm text-slate-900">Helpline</h4>
+                            <p className="text-xs text-slate-500 mt-1">+256 800 123 456</p>
+                            <p className="text-[10px] text-slate-400 mt-1">Mon-Fri, 8am - 5pm</p>
+                        </div>
+                    </div>
+                </div>
+
+                <Button className="w-full h-14 font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-100 mb-6" onClick={() => setMode('LOGIN')}>
+                    Return to Login
+                </Button>
               </>
             )}
           </Card>

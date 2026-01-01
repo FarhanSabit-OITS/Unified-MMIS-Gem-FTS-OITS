@@ -3,7 +3,8 @@ import { Store, User, ShieldCheck, ChevronRight, Users, AlertCircle, CheckCircle
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-import { UserProfile } from '../../types';
+import { UserProfile, UserRole } from '../../types';
+import { VendorKYCForm } from '../VendorKYCForm';
 
 interface OnboardingWizardProps {
   user: UserProfile;
@@ -18,6 +19,8 @@ export const OnboardingWizard = ({ user, onComplete, onCancel }: OnboardingWizar
     { title: 'Identity', description: 'Confirm your profile details.', icon: User },
     { title: 'Security', description: 'Configure your security settings.', icon: ShieldCheck },
   ];
+
+  const needsKYC = user.role === UserRole.VENDOR || user.role === UserRole.SUPPLIER;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-indigo-50 p-4">
@@ -64,13 +67,21 @@ export const OnboardingWizard = ({ user, onComplete, onCancel }: OnboardingWizar
         )}
 
         {step === 2 && (
-          <div className="space-y-4 py-4">
-            <Input label="Display Name" value={user.name} readOnly />
-            <Input label="Email" value={user.email} disabled />
-            <div className="p-4 bg-amber-50 rounded-lg flex gap-3 border border-amber-100">
-               <AlertCircle className="text-amber-600 shrink-0" />
-               <p className="text-sm text-amber-800">Your current role is <strong>{user.role}</strong>. You can apply for upgrades in the dashboard.</p>
-            </div>
+          <div className="space-y-6 py-4">
+            {needsKYC ? (
+                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                    <VendorKYCForm onSuccess={() => setStep(3)} />
+                </div>
+            ) : (
+                <>
+                    <Input label="Display Name" value={user.name} readOnly />
+                    <Input label="Email" value={user.email} disabled />
+                    <div className="p-4 bg-amber-50 rounded-lg flex gap-3 border border-amber-100">
+                        <AlertCircle className="text-amber-600 shrink-0" />
+                        <p className="text-sm text-amber-800">Your current role is <strong>{user.role}</strong>. You can apply for upgrades in the dashboard.</p>
+                    </div>
+                </>
+            )}
           </div>
         )}
 
@@ -86,6 +97,20 @@ export const OnboardingWizard = ({ user, onComplete, onCancel }: OnboardingWizar
               </div>
               <span className="text-green-600 text-sm font-semibold">Ready</span>
             </div>
+            
+            {needsKYC && (
+                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-100">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center"><ShieldCheck /></div>
+                        <div>
+                        <h4 className="font-bold">KYC Documents Submitted</h4>
+                        <p className="text-xs text-slate-500">Pending administrative review.</p>
+                        </div>
+                    </div>
+                    <span className="text-blue-600 text-sm font-semibold">Submitted</span>
+                </div>
+            )}
+
             <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center"><ShieldCheck /></div>
@@ -103,9 +128,13 @@ export const OnboardingWizard = ({ user, onComplete, onCancel }: OnboardingWizar
           <Button variant="ghost" onClick={() => step > 1 ? setStep(step-1) : onCancel()}>
             {step === 1 ? 'Cancel' : 'Back'}
           </Button>
-          <Button onClick={() => step < steps.length ? setStep(step+1) : onComplete()}>
-            {step === steps.length ? 'Go to Dashboard' : 'Continue'} <ChevronRight className="w-4 h-4" />
-          </Button>
+          
+          {/* Hide Continue on Step 2 if KYC is required, as the form handles progression */}
+          {!(step === 2 && needsKYC) && (
+              <Button onClick={() => step < steps.length ? setStep(step+1) : onComplete()}>
+                {step === steps.length ? 'Go to Dashboard' : 'Continue'} <ChevronRight className="w-4 h-4" />
+              </Button>
+          )}
         </div>
       </Card>
     </div>

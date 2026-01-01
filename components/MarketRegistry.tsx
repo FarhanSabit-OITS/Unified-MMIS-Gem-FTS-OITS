@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MARKETS, CITIES } from '../constants';
-import { MapPin, Building2, Calendar, Filter, LayoutGrid, PieChart as PieChartIcon, BarChart3 } from 'lucide-react';
+import { MapPin, Building2, Calendar, Filter, LayoutGrid, PieChart as PieChartIcon, BarChart3, X } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export const MarketRegistry: React.FC = () => {
@@ -8,16 +8,17 @@ export const MarketRegistry: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [ownershipFilter, setOwnershipFilter] = useState('ALL');
   const [sortOrder, setSortOrder] = useState<'NEWEST' | 'OLDEST'>('NEWEST');
-  const [yearRange, setYearRange] = useState({ start: '1900', end: new Date().getFullYear().toString() });
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
 
   const filteredMarkets = MARKETS.filter(market => {
     const matchesType = typeFilter === 'ALL' || market.type === typeFilter;
     const matchesOwnership = ownershipFilter === 'ALL' || market.ownership === ownershipFilter;
     
-    const estYear = new Date(market.establishmentDate).getFullYear();
-    const startYear = parseInt(yearRange.start) || 0;
-    const endYear = parseInt(yearRange.end) || 9999;
-    const matchesDate = estYear >= startYear && estYear <= endYear;
+    const marketDate = new Date(market.establishmentDate).getTime();
+    const startDate = dateRange.start ? new Date(dateRange.start).getTime() : 0;
+    const endDate = dateRange.end ? new Date(dateRange.end).getTime() : Infinity;
+    
+    const matchesDate = marketDate >= startDate && marketDate <= endDate;
 
     return matchesType && matchesOwnership && matchesDate;
   }).sort((a, b) => {
@@ -40,6 +41,13 @@ export const MarketRegistry: React.FC = () => {
     { name: 'Retail', count: MARKETS.filter(m => m.type === 'RETAIL').length },
     { name: 'Mixed', count: MARKETS.filter(m => m.type === 'MIXED').length },
   ];
+
+  const clearFilters = () => {
+      setTypeFilter('ALL');
+      setOwnershipFilter('ALL');
+      setDateRange({ start: '', end: '' });
+      setSortOrder('NEWEST');
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
@@ -75,7 +83,7 @@ export const MarketRegistry: React.FC = () => {
                 <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase">Type</label>
                     <select 
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-32 px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={typeFilter}
                     onChange={(e) => setTypeFilter(e.target.value)}
                     >
@@ -89,7 +97,7 @@ export const MarketRegistry: React.FC = () => {
                 <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase">Ownership</label>
                     <select 
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-32 px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={ownershipFilter}
                     onChange={(e) => setOwnershipFilter(e.target.value)}
                     >
@@ -101,37 +109,44 @@ export const MarketRegistry: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Est. Year (From)</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Est. Date (From)</label>
                     <input 
-                        type="number" 
-                        placeholder="Start"
-                        className="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={yearRange.start}
-                        onChange={(e) => setYearRange({...yearRange, start: e.target.value})}
+                        type="date" 
+                        className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={dateRange.start}
+                        onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
                     />
                 </div>
 
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Est. Year (To)</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Est. Date (To)</label>
                     <input 
-                        type="number" 
-                        placeholder="End"
-                        className="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={yearRange.end}
-                        onChange={(e) => setYearRange({...yearRange, end: e.target.value})}
+                        type="date" 
+                        className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={dateRange.end}
+                        onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
                     />
                 </div>
 
-                <div className="space-y-1 ml-auto">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Sort Order</label>
-                    <select 
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value as 'NEWEST' | 'OLDEST')}
+                <div className="space-y-1 ml-auto flex gap-2">
+                    <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Sort Order</label>
+                        <select 
+                        className="w-32 px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value as 'NEWEST' | 'OLDEST')}
+                        >
+                        <option value="NEWEST">Newest First</option>
+                        <option value="OLDEST">Oldest First</option>
+                        </select>
+                    </div>
+                    <button 
+                        onClick={clearFilters}
+                        className="h-[38px] px-3 mt-auto bg-slate-100 text-slate-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
+                        title="Clear Filters"
                     >
-                    <option value="NEWEST">Newest First</option>
-                    <option value="OLDEST">Oldest First</option>
-                    </select>
+                        <X size={18} />
+                    </button>
                 </div>
             </div>
 
@@ -165,7 +180,7 @@ export const MarketRegistry: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-2 text-sm text-slate-600">
                             <Calendar size={16} className="text-slate-400" />
-                            Est. {new Date(market.establishmentDate).getFullYear()} ({new Date().getFullYear() - new Date(market.establishmentDate).getFullYear()} yrs)
+                            Est. {new Date(market.establishmentDate).toLocaleDateString()}
                         </div>
                         </div>
 
@@ -180,6 +195,7 @@ export const MarketRegistry: React.FC = () => {
                     <div className="col-span-full py-12 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
                         <Building2 size={48} className="mx-auto mb-4 opacity-20" />
                         <p>No markets match your criteria.</p>
+                        <button onClick={clearFilters} className="text-blue-600 font-bold mt-2 hover:underline">Clear Filters</button>
                     </div>
                 )}
             </div>

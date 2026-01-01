@@ -45,6 +45,13 @@ export const MarketAdminApplicationForm: React.FC<MarketAdminApplicationFormProp
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Explicit Requirement: Alert Popup for Invalid Domain
+    if (!formData.email.endsWith('@mmis.tevas.ug')) {
+        alert("SECURITY ALERT: Access Denied.\n\nYou must use an official '@mmis.tevas.ug' domain to apply for Market Administration.");
+        setGlobalError("Invalid Domain: Official credentials required.");
+        return;
+    }
+
     // Validate with Zod
     const result = adminSchema.safeParse(formData);
 
