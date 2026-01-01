@@ -73,7 +73,7 @@ export const VendorKYCForm: React.FC<VendorKYCFormProps> = ({ onSuccess }) => {
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-2">1. National ID / Passport</label>
           <div className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition ${
-            documents.nid ? 'border-green-400 bg-green-50' : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50'
+            documents.nid ? 'border-green-400 bg-green-50' : errors.nid ? 'border-red-300 bg-red-50' : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50'
           }`}>
             <input 
               type="file" 
@@ -86,12 +86,12 @@ export const VendorKYCForm: React.FC<VendorKYCFormProps> = ({ onSuccess }) => {
               {documents.nid ? (
                 <>
                   <CheckCircle2 className="text-green-600 mb-2" size={32} />
-                  <p className="font-bold text-green-800 text-sm">{documents.nid.name}</p>
+                  <p className="font-bold text-green-800 text-sm truncate w-full">{documents.nid.name}</p>
                   <p className="text-xs text-green-600">{(documents.nid.size / 1024 / 1024).toFixed(2)} MB</p>
                 </>
               ) : (
                 <>
-                  <Upload className="text-slate-400 mb-2" size={32} />
+                  <Upload className={`${errors.nid ? 'text-red-400' : 'text-slate-400'} mb-2`} size={32} />
                   <p className="font-bold text-slate-600 text-sm">Upload ID Document</p>
                   <p className="text-xs text-slate-400 mt-1">PDF, JPG or PNG (Max 5MB)</p>
                 </>
@@ -109,7 +109,7 @@ export const VendorKYCForm: React.FC<VendorKYCFormProps> = ({ onSuccess }) => {
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-2">2. Trading License</label>
           <div className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition ${
-            documents.license ? 'border-green-400 bg-green-50' : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50'
+            documents.license ? 'border-green-400 bg-green-50' : errors.license ? 'border-red-300 bg-red-50' : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50'
           }`}>
             <input 
               type="file" 
@@ -122,12 +122,12 @@ export const VendorKYCForm: React.FC<VendorKYCFormProps> = ({ onSuccess }) => {
               {documents.license ? (
                 <>
                   <CheckCircle2 className="text-green-600 mb-2" size={32} />
-                  <p className="font-bold text-green-800 text-sm">{documents.license.name}</p>
+                  <p className="font-bold text-green-800 text-sm truncate w-full">{documents.license.name}</p>
                   <p className="text-xs text-green-600">{(documents.license.size / 1024 / 1024).toFixed(2)} MB</p>
                 </>
               ) : (
                 <>
-                  <FileText className="text-slate-400 mb-2" size={32} />
+                  <FileText className={`${errors.license ? 'text-red-400' : 'text-slate-400'} mb-2`} size={32} />
                   <p className="font-bold text-slate-600 text-sm">Upload License</p>
                   <p className="text-xs text-slate-400 mt-1">PDF, JPG or PNG (Max 5MB)</p>
                 </>

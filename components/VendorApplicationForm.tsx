@@ -27,7 +27,19 @@ export const VendorApplicationForm: React.FC<VendorApplicationFormProps> = ({ on
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-        setKycFile(e.target.files[0]);
+        const file = e.target.files[0];
+        // Validate File Size (Max 5MB) & Type
+        if (file.size > 5 * 1024 * 1024) {
+            setError('File size exceeds 5MB limit.');
+            return;
+        }
+        if (!['image/jpeg', 'image/png', 'application/pdf'].includes(file.type)) {
+            setError('Invalid file type. Only JPG, PNG, and PDF are allowed.');
+            return;
+        }
+
+        setKycFile(file);
+        setError('');
     }
   };
 
@@ -153,7 +165,7 @@ export const VendorApplicationForm: React.FC<VendorApplicationFormProps> = ({ on
         </div>
 
         {/* KYC Upload */}
-        <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:bg-slate-50 transition cursor-pointer relative">
+        <div className={`border-2 border-dashed rounded-lg p-4 text-center transition cursor-pointer relative ${kycFile ? 'border-green-400 bg-green-50' : 'border-slate-300 hover:bg-slate-50'}`}>
             <input 
                 type="file" 
                 id="kyc-upload-reg" 
@@ -163,8 +175,9 @@ export const VendorApplicationForm: React.FC<VendorApplicationFormProps> = ({ on
             />
             {kycFile ? (
                 <div className="flex items-center justify-center gap-2 text-green-600 font-bold">
-                    <FileText size={20} />
+                    <CheckCircle2 size={20} />
                     <span className="truncate max-w-[200px]">{kycFile.name}</span>
+                    <span className="text-xs text-green-500">({(kycFile.size/1024/1024).toFixed(2)}MB)</span>
                 </div>
             ) : (
                 <div className="flex flex-col items-center text-slate-500">
