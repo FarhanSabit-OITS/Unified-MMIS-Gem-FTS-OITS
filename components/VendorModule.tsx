@@ -111,7 +111,6 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
         ...newVendorData,
         productsCount: 0,
         kycVerified: newVendorData.kycVerified,
-        city: CITIES.find(c => c.id === newVendorData.cityId)?.name || 'Kampala'
       };
       setVendors(prev => [newV, ...prev]);
       setAddVendorStep('SUCCESS');
@@ -140,9 +139,10 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   };
 
   const toggleRentSort = () => {
+      // Fixed: corrected variable name to rentSortOrder
       if (rentSortOrder === 'NONE') setRentSortOrder('ASC');
       else if (rentSortOrder === 'ASC') setRentSortOrder('DESC');
-      else setSortOrder('NONE');
+      else setRentSortOrder('NONE');
   };
 
   return (
@@ -372,7 +372,6 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                         </div>
 
                         <div className="space-y-4 pt-4 border-t border-slate-100">
-                            {/* FIX: Added ShieldCheck to imports and use it here */}
                             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><ShieldCheck size={14}/> Identity Verification</h4>
                             <VendorKYCForm onFilesChange={(f, v) => setIsKycValid(v)} />
                         </div>

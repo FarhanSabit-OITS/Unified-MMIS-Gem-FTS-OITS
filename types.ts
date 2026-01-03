@@ -8,13 +8,51 @@ export enum UserRole {
   USER = 'USER'
 }
 
-// Alias for compatibility with new Auth components
-export type Role = UserRole;
+export enum MarketType {
+  WHOLESALE = 'WHOLESALE',
+  RETAIL = 'RETAIL',
+  FARMERS = 'FARMERS',
+  FLEA = 'FLEA',
+  SPECIALIZED = 'SPECIALIZED'
+}
 
-export enum ApplicationStatus {
-  PENDING = 'PENDING',
-  APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED'
+export enum ProductCategory {
+  GROCERIES = 'GROCERIES',
+  TEXTILES = 'TEXTILES',
+  ELECTRONICS = 'ELECTRONICS',
+  HARDWARE = 'HARDWARE',
+  LIVESTOCK = 'LIVESTOCK',
+  GENERAL = 'GENERAL'
+}
+
+export enum VehicleCategory {
+  HEAVY_TRUCK = 'HEAVY_TRUCK',
+  LIGHT_VAN = 'LIGHT_VAN',
+  MOTORBIKE = 'MOTORBIKE',
+  SALOON_CAR = 'SALOON_CAR'
+}
+
+export enum PaymentType {
+  RENT = 'RENT',
+  URA_VAT = 'URA_VAT',
+  LOCAL_LEVY = 'LOCAL_LEVY',
+  GATE_FEE = 'GATE_FEE',
+  UTILITY = 'UTILITY',
+  FINE = 'FINE',
+  SERVICE_CHARGE = 'SERVICE_CHARGE',
+  SUPPLY_ESCROW = 'SUPPLY_ESCROW'
+}
+
+export enum TicketContext {
+  SUPPORT = 'SUPPORT',
+  SECURITY = 'SECURITY',
+  MAINTENANCE = 'MAINTENANCE',
+  TRADE_DISPUTE = 'TRADE_DISPUTE',
+  UTILITY_FAILURE = 'UTILITY_FAILURE',
+  // Added missing context members
+  ASSET = 'ASSET',
+  SUPPLY = 'SUPPLY',
+  COMPLAINT = 'COMPLAINT'
 }
 
 export enum TicketPriority {
@@ -24,11 +62,11 @@ export enum TicketPriority {
   CRITICAL = 'CRITICAL'
 }
 
-export enum TicketContext {
-  SUPPORT = 'SUPPORT',
-  ASSET = 'ASSET',
-  SUPPLY = 'SUPPLY',
-  COMPLAINT = 'COMPLAINT'
+// Added ApplicationStatus enum for role access requests
+export enum ApplicationStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
 }
 
 export interface User {
@@ -36,41 +74,24 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  avatarUrl?: string;
-  kycStatus?: ApplicationStatus;
-  marketId?: string; // RBAC: Links admin/staff to a specific market
+  marketId?: string;
+  isVerified?: boolean;
 }
 
-// Extended interface for the new App.tsx logic
 export interface UserProfile extends User {
-  isVerified?: boolean;
-  mfaEnabled?: boolean;
-  profileImage?: string;
-  settings?: {
-    lowStockThreshold?: number;
-    criticalStockThreshold?: number;
-    notifications?: {
-      email: boolean;
-      browser: boolean;
-      sms: boolean;
-    }
-  };
+  phone?: string;
+  avatarUrl?: string;
+  // Added kycStatus for onboarding logic
+  kycStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
 export interface Market {
   id: string;
   name: string;
   cityId: string;
-  type: 'WHOLESALE' | 'RETAIL' | 'MIXED';
+  type: MarketType;
   ownership: 'PUBLIC' | 'PRIVATE' | 'PPP';
-  establishmentDate: string; // ISO Date string
-  capacity?: number;
-  primaryProducts?: string[];
-}
-
-export interface City {
-  id: string;
-  name: string;
+  establishmentDate: string;
 }
 
 export interface Vendor {
@@ -80,65 +101,48 @@ export interface Vendor {
   marketId: string;
   status: 'ACTIVE' | 'SUSPENDED';
   rentDue: number;
-  rentDueDate?: string; // Added for rent management
-  vatDue?: number;
-  gender: 'MALE' | 'FEMALE';
-  age: number;
-  productsCount: number;
-  kycVerified: boolean;
-  notes?: string;
-  joinedDate?: string;
-  city?: string;
-  market?: string;
-  level?: string;
-  section?: string;
-  storeType?: string;
-  ownershipType?: string;
+  rentDueDate?: string;
   email?: string;
   phone?: string;
-}
-
-export interface Supplier {
-  id: string;
-  companyName: string;
-  rating: number; // 0-5
-  totalRatings: number;
+  productsCount: number;
   kycVerified: boolean;
-  categories: string[];
-  trustScore?: number; // AI Generated
-  email?: string;
-  status?: string;
-  warehouseLocation?: string;
-  suppliedItemsCount?: number;
-  walletBalance?: number;
-  totalRevenue?: number;
-  pendingPayouts?: number;
-  showcase?: SupplierShowcaseItem[];
+  storeType?: ProductCategory;
+  section?: string;
+  age: number;
+  gender: 'MALE' | 'FEMALE';
 }
 
-export interface SupplierShowcaseItem {
+export interface Product {
   id: string;
   name: string;
-  description: string;
-  priceRange: string;
-  category: string;
+  category: ProductCategory;
+  stock: number;
+  price: number;
+  sku: string;
 }
 
-export interface Requisition {
+export interface Transaction {
   id: string;
-  vendorId: string;
-  vendorName: string;
-  marketId: string;
-  items: { name: string; qty: number; unit: string }[];
-  status: 'OPEN' | 'BIDDING' | 'FULFILLED' | 'CANCELLED';
-  createdAt: string;
-  deadline: string;
-  budget?: number;
-  description?: string;
-  bids?: Bid[];
-  itemName?: string; // For compatibility
-  quantity?: number; // For compatibility
-  unit?: string; // For compatibility
+  entityId: string;
+  date: string;
+  amount: number;
+  taxAmount?: number;
+  type: PaymentType;
+  status: 'PAID' | 'PENDING' | 'OVERDUE' | 'ESCROW' | 'FLAGGED';
+  method: 'MTN_MOMO' | 'AIRTEL_MONEY' | 'BANK' | 'CASH';
+  reference?: string;
+}
+
+export interface GateToken {
+  id: string;
+  code: string;
+  type: 'ENTRY' | 'EXIT';
+  entityName: string;
+  status: 'ACTIVE' | 'USED' | 'EXPIRED';
+  generatedAt: string;
+  vehicleType?: VehicleCategory;
+  associatedFee: number;
+  taxAmount: number;
 }
 
 export interface Bid {
@@ -152,98 +156,31 @@ export interface Bid {
   aiTrustScore: number;
 }
 
+export interface Requisition {
+  id: string;
+  vendorId: string;
+  vendorName: string;
+  items: { name: string; qty: number; unit: string }[];
+  status: 'OPEN' | 'BIDDING' | 'FULFILLED';
+  createdAt: string;
+  deadline: string;
+  // Added marketId for context
+  marketId?: string;
+}
+
 export interface Ticket {
   id: string;
   title: string;
-  description?: string;
+  description: string;
   context: TicketContext;
   priority: TicketPriority;
-  status: 'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED';
-  assignedTo?: string;
-  summary?: string; // AI Generated summary
+  status: 'OPEN' | 'ASSIGNED' | 'RESOLVED';
   createdAt: string;
-  createdByRole?: UserRole; // To filter for non-admins
-  creatorId?: string;
-  creatorName?: string;
-  marketId?: string; // RBAC: Ticket belongs to a market context
+  createdByRole: UserRole;
+  marketId: string;
+  assignedTo?: string;
+  // Added attachmentUrl for file support
   attachmentUrl?: string;
-  assetType?: string;
-  assignedToId?: string;
-  assignedToName?: string;
-}
-
-export interface Transaction {
-  id: string;
-  entityId?: string; // Link to Vendor or Supplier ID
-  date: string;
-  amount: number;
-  taxAmount?: number; // VAT or Levy portion
-  netAmount?: number; // Amount without tax
-  type: 'RENT' | 'VAT' | 'TAX' | 'SUPPLY_PAYMENT' | 'INCOME' | 'GATE_FEE' | 'EXPENDITURE' | 'WITHDRAWAL' | 'SALE_REVENUE' | 'SERVICE_CHARGE' | 'FINE' | 'UTILITY' | 'LEVY';
-  status: 'PAID' | 'PENDING' | 'OVERDUE' | 'ESCROW' | 'SUCCESS' | 'FAILED' | 'FLAGGED' | 'REMITTED';
-  method: 'MTN_MOMO' | 'AIRTEL_MONEY' | 'BANK' | 'CASH' | 'WALLET' | 'CARD' | 'VISA';
-  reference?: string;
-  referenceId?: string;
-  direction?: 'IN' | 'OUT';
-  verifiedBy?: string;
-}
-
-export interface Vehicle {
-  id: string;
-  plateNumber: string;
-  type: 'REGULAR' | 'VISITOR';
-  category: 'TRUCK' | 'VAN' | 'BIKE' | 'CAR';
-  ownerName?: string;
-  phone?: string;
-  status: 'INSIDE' | 'OUTSIDE';
-  parkedAt?: string; // Slot ID
-  lastEntry?: string;
-}
-
-export interface ParkingSlot {
-  id: string;
-  number: string;
-  zone: 'A' | 'B' | 'C' | 'ALPHA' | 'BETA' | 'GAMMA'; // A=Trucks, B=Cars, C=Bikes
-  status: 'AVAILABLE' | 'OCCUPIED' | 'RESERVED';
-  vehiclePlate?: string;
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  category: string;
-  stock: number;
-  price: number;
-  sku: string;
-  description?: string;
-  vendor?: string;
-  status?: 'HEALTHY' | 'LOW' | 'CRITICAL' | 'PENDING_APPROVAL';
-  isFeatured?: boolean;
-}
-
-export interface Sale {
-  id: string;
-  date: string;
-  items: { productId: string; name: string; qty: number; price: number }[];
-  totalAmount: number;
-  taxAmount?: number;
-  paymentMethod: 'CASH' | 'MOMO' | 'CARD';
-}
-
-export interface GateToken {
-  id: string;
-  code: string;
-  type: 'ENTRY' | 'EXIT';
-  entityName: string; // Vehicle Plate or Person Name
-  status: 'ACTIVE' | 'USED' | 'EXPIRED';
-  generatedAt: string;
-  exitAt?: string; // For duration calc
-  durationMinutes?: number; 
-  generatedBy: string;
-  associatedFee?: number; // Total Fee
-  taxAmount?: number; // Calculated VAT
-  overstayFee?: number;
-  paymentStatus?: 'PAID' | 'PENDING';
 }
 
 export interface Notification {
@@ -255,81 +192,36 @@ export interface Notification {
   read: boolean;
 }
 
-export interface OrderItem {
+// Added Supplier interface
+export interface Supplier {
   id: string;
-  productId: string;
-  name: string;
-  quantity: number;
-  price: number;
+  companyName: string;
+  rating: number;
+  totalRatings: number;
+  categories: string[];
+  trustScore?: number;
+  kycVerified: boolean;
 }
 
+// Added Sale interface for POS
+export interface Sale {
+  id: string;
+  date: string;
+  items: { productId: string; name: string; qty: number; price: number }[];
+  totalAmount: number;
+  taxAmount: number;
+  paymentMethod: 'CASH' | 'MOMO' | 'CARD';
+}
+
+// Added Order interface for OrdersModule
 export interface Order {
   id: string;
   customerName: string;
   vendorName: string;
-  items: OrderItem[];
+  items: any[];
   total: number;
   status: 'PENDING' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED';
   createdAt: string;
   type: 'INCOMING' | 'OUTGOING';
   tags?: string[];
-}
-
-// --- New Types for Asset Management ---
-
-export interface AssetCCTV {
-  id: string;
-  name: string;
-  location: string;
-  marketId: string; // RBAC
-  status: 'ONLINE' | 'OFFLINE' | 'RECORDING';
-  lastMaintenance: string;
-}
-
-export interface PowerZone {
-  id: string;
-  floor: string;
-  marketId: string; // RBAC
-  status: 'STABLE' | 'OUTAGE' | 'FLUCTUATING';
-  load: number; // Percentage
-}
-
-export interface StaffMember {
-  id: string;
-  name: string;
-  role: 'SECURITY' | 'CLEANER' | 'MAINTENANCE' | 'ADMIN';
-  shift: 'MORNING' | 'AFTERNOON' | 'NIGHT';
-  status: 'ON_DUTY' | 'OFF_DUTY' | 'LEAVE';
-  phone: string;
-  marketId: string;
-}
-
-export interface StockLog {
-  id: string;
-  itemName: string;
-  quantity: number;
-  unit: string;
-  vendor: string;
-  type: 'INBOUND' | 'OUTBOUND';
-  timestamp: string;
-  inspector: string;
-  status: 'VERIFIED' | 'FLAGGED' | 'PENDING';
-}
-
-export interface ManifestItem {
-  id: string;
-  vendorId: string;
-  vendorName: string;
-  itemName: string;
-  qty: number;
-  estPrice: number;
-  paid: boolean;
-}
-
-export interface BridgeLogistics {
-  id: string;
-  dispatchDate: string;
-  status: 'PREPARING' | 'EN_ROUTE' | 'COMPLETED';
-  capacity: number;
-  items: ManifestItem[];
 }
