@@ -139,7 +139,6 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   };
 
   const toggleRentSort = () => {
-      // Fixed: corrected variable name to rentSortOrder
       if (rentSortOrder === 'NONE') setRentSortOrder('ASC');
       else if (rentSortOrder === 'ASC') setRentSortOrder('DESC');
       else setRentSortOrder('NONE');
