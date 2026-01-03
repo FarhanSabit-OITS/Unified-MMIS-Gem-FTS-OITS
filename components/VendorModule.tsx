@@ -1,13 +1,11 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Vendor, UserRole, ProductCategory } from '../types';
-import { MOCK_VENDORS, CITIES, MARKETS } from '../constants';
-import { ApiService } from '../services/api';
+import { MOCK_VENDORS, MARKETS } from '../constants';
 import { 
-  Search, QrCode, CheckCircle, Save, AlertTriangle, UserPlus, Loader2,
-  RefreshCcw, Store, ArrowUpDown, ArrowUp, ArrowDown, Calendar, ShieldCheck,
-  Play, Ban, X, Download, FileText, Printer, MoreVertical, Check, ListFilter,
-  CheckSquare, Square, Filter
+  Search, QrCode, UserPlus, Store, ArrowUpDown, ArrowUp, ArrowDown, 
+  ShieldCheck, Play, Ban, X, Download, Printer, Filter, 
+  CheckSquare, Square, DollarSign, Tag, ListFilter
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { VendorDetailsModal } from './VendorDetailsModal';
@@ -20,7 +18,6 @@ interface VendorModuleProps {
 
 export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.USER, currentUserId, marketId }) => {
   const [vendors, setVendors] = useState<Vendor[]>(MOCK_VENDORS);
-  const [isLoading, setIsLoading] = useState(false);
   
   // Selection State for Bulk Actions
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -31,6 +28,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [nameSortOrder, setNameSortOrder] = useState<'ASC' | 'DESC' | null>(null);
+  const [rentSortOrder, setRentSortOrder] = useState<'LOW_HIGH' | 'HIGH_LOW' | null>(null);
   
   // Modals
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
@@ -44,7 +42,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
     if (vendor.rentDue <= 0) {
       return { 
         label: 'PAID', 
-        color: 'bg-emerald-500 shadow-[0_0_8px_#10b981]', 
+        color: 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]', 
         text: 'text-emerald-700', 
         bg: 'bg-emerald-50', 
         border: 'border-emerald-100' 
@@ -57,7 +55,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
     if (isOverdue) {
       return { 
         label: 'OVERDUE', 
-        color: 'bg-rose-500 shadow-[0_0_8px_#f43f5e]', 
+        color: 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.4)]', 
         text: 'text-rose-700', 
         bg: 'bg-rose-50', 
         border: 'border-rose-100' 
@@ -66,7 +64,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
     
     return { 
       label: 'PENDING', 
-      color: 'bg-amber-500 shadow-[0_0_8px_#f59e0b]', 
+      color: 'bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.4)]', 
       text: 'text-amber-700', 
       bg: 'bg-amber-50', 
       border: 'border-amber-100' 
@@ -83,7 +81,11 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
       return matchesSearch && matchesStatus && matchesMarket && matchesCategory;
     });
 
-    if (nameSortOrder) {
+    if (rentSortOrder) {
+      result = [...result].sort((a, b) => {
+        return rentSortOrder === 'LOW_HIGH' ? a.rentDue - b.rentDue : b.rentDue - a.rentDue;
+      });
+    } else if (nameSortOrder) {
       result = [...result].sort((a, b) => {
         const comparison = a.name.localeCompare(b.name);
         return nameSortOrder === 'ASC' ? comparison : -comparison;
@@ -91,9 +93,10 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
     }
 
     return result;
-  }, [vendors, searchTerm, statusFilter, categoryFilter, selectedMarket, nameSortOrder]);
+  }, [vendors, searchTerm, statusFilter, categoryFilter, selectedMarket, nameSortOrder, rentSortOrder]);
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     const next = new Set(selectedIds);
     if (next.has(id)) next.delete(id);
     else next.add(id);
@@ -116,10 +119,11 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
       selectedIds.has(v.id) ? { ...v, status: nextStatus as any } : v
     ));
     setSelectedIds(new Set());
-    alert(`Bulk Operation Successful: ${selectedIds.size} nodes updated.`);
+    alert(`Bulk Operation Successful: ${selectedIds.size} vendor nodes updated to ${nextStatus}.`);
   };
 
   const toggleNameSort = () => {
+    setRentSortOrder(null);
     setNameSortOrder(prev => {
       if (prev === null) return 'ASC';
       if (prev === 'ASC') return 'DESC';
@@ -141,20 +145,29 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
            </div>
         </div>
         
-        {isAdmin && selectedIds.size > 0 ? (
-          <div className="flex gap-2 animate-in slide-in-from-right-4">
-             <Button onClick={() => handleBulkAction('ACTIVATE')} className="bg-emerald-600 hover:bg-emerald-700 h-14 px-8 font-black uppercase text-[10px] tracking-[0.2em] shadow-2xl shadow-emerald-200">
-                <Play size={14} className="mr-2"/> Bulk Activate
-             </Button>
-             <Button onClick={() => handleBulkAction('SUSPEND')} className="bg-slate-950 hover:bg-black h-14 px-8 font-black uppercase text-[10px] tracking-[0.2em] shadow-2xl">
-                <Ban size={14} className="mr-2"/> Bulk Suspend
-             </Button>
-          </div>
-        ) : isAdmin && (
-          <Button className="h-14 px-8 font-black uppercase text-[10px] tracking-[0.2em] bg-indigo-600 hover:bg-indigo-700 shadow-2xl shadow-indigo-100">
-            <UserPlus size={18} className="mr-2"/> Register New Node
-          </Button>
-        )}
+        <div className="flex items-center gap-3">
+          {isAdmin && selectedIds.size > 0 && (
+            <div className="flex gap-2 animate-in slide-in-from-right-4">
+               <button 
+                  onClick={() => handleBulkAction('ACTIVATE')} 
+                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-200 transition-all active:scale-95"
+               >
+                  <Play size={14}/> Activate Selected ({selectedIds.size})
+               </button>
+               <button 
+                  onClick={() => handleBulkAction('SUSPEND')} 
+                  className="flex items-center gap-2 bg-slate-950 hover:bg-black text-white px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95"
+               >
+                  <Ban size={14}/> Suspend Selected ({selectedIds.size})
+               </button>
+            </div>
+          )}
+          {isAdmin && (
+            <Button className="h-14 px-8 font-black uppercase text-[10px] tracking-[0.2em] bg-indigo-600 hover:bg-indigo-700 shadow-2xl shadow-indigo-100">
+              <UserPlus size={18} className="mr-2"/> Register New Node
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Control Bar */}
@@ -164,14 +177,14 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input 
               type="text" 
-              placeholder="Deep search entity, unit or registry ID..." 
+              placeholder="Search vendor name, shop unit or ID..." 
               className="w-full pl-16 pr-8 py-5 rounded-[24px] border-2 border-slate-100 bg-slate-50 font-bold text-sm text-slate-950 focus:bg-white focus:border-indigo-600 outline-none transition-all shadow-inner"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Filter size={10}/> Region</label>
                 <select 
@@ -185,7 +198,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><ShieldCheck size={10}/> Integrity</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><ShieldCheck size={10}/> Registry State</label>
                 <select 
                   className="px-6 py-4 border-2 border-slate-100 rounded-[20px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[160px] shadow-sm cursor-pointer" 
                   value={statusFilter} 
@@ -198,27 +211,43 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><ListFilter size={10}/> Sector</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><ListFilter size={10}/> Store Type</label>
                 <select 
                   className="px-6 py-4 border-2 border-slate-100 rounded-[20px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[160px] shadow-sm cursor-pointer" 
                   value={categoryFilter} 
                   onChange={(e) => setCategoryFilter(e.target.value)}
                 >
-                    <option value="ALL">All Sectors</option>
+                    <option value="ALL">All Categories</option>
                     {Object.values(ProductCategory).map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
                     ))}
                 </select>
               </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><DollarSign size={10}/> Rent Due</label>
+                <select 
+                  className="px-6 py-4 border-2 border-slate-100 rounded-[20px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[160px] shadow-sm cursor-pointer" 
+                  value={rentSortOrder || 'NONE'} 
+                  onChange={(e) => {
+                    setRentSortOrder(e.target.value === 'NONE' ? null : e.target.value as any);
+                    setNameSortOrder(null);
+                  }}
+                >
+                    <option value="NONE">No Sorting</option>
+                    <option value="LOW_HIGH">Low to High</option>
+                    <option value="HIGH_LOW">High to Low</option>
+                </select>
+              </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><ArrowUpDown size={10}/> Ordering</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><ArrowUpDown size={10}/> Alpha</label>
             <button 
                 onClick={toggleNameSort}
                 className={`px-8 py-4 border-2 rounded-[20px] text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${nameSortOrder ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-100' : 'bg-slate-50 border-slate-100 text-slate-500'}`}
             >
-                Alpha {nameSortOrder === 'ASC' ? <ArrowUp size={14}/> : nameSortOrder === 'DESC' ? <ArrowDown size={14}/> : <ArrowUpDown size={14}/>}
+                Sort {nameSortOrder === 'ASC' ? <ArrowUp size={14}/> : nameSortOrder === 'DESC' ? <ArrowDown size={14}/> : <ArrowUpDown size={14}/>}
             </button>
           </div>
         </div>
@@ -239,8 +268,8 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                 )}
                 <th className="px-10 py-8">Entity Cluster</th>
                 <th className="px-10 py-8">Registry Unit</th>
-                <th className="px-10 py-8">Fiscal Status</th>
-                <th className="px-10 py-8">Node State</th>
+                <th className="px-10 py-8">Fiscal Health</th>
+                <th className="px-10 py-8">State</th>
                 <th className="px-10 py-8 text-right">Telemetry</th>
               </tr>
             </thead>
@@ -251,8 +280,8 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                 return (
                   <tr key={vendor.id} className={`hover:bg-indigo-50/40 transition-all group cursor-pointer ${isSelected ? 'bg-indigo-50/60' : ''}`} onClick={() => setSelectedVendor(vendor)}>
                     {isAdmin && (
-                      <td className="px-10 py-8" onClick={(e) => { e.stopPropagation(); toggleSelect(vendor.id); }}>
-                        <button className={`transition-colors ${isSelected ? 'text-indigo-600' : 'text-slate-200 group-hover:text-indigo-300'}`}>
+                      <td className="px-10 py-8">
+                        <button onClick={(e) => toggleSelect(vendor.id, e)} className={`transition-colors ${isSelected ? 'text-indigo-600' : 'text-slate-200 group-hover:text-indigo-300'}`}>
                            {isSelected ? <CheckSquare size={22}/> : <Square size={22}/>}
                         </button>
                       </td>
@@ -270,25 +299,28 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                     </td>
                     <td className="px-10 py-8">
                       <div className="flex items-center gap-3">
-                        <div className={`w-2.5 h-2.5 rounded-full ${rentStatus.color} ${rentStatus.label !== 'PAID' ? 'animate-pulse' : ''}`}></div>
+                        <div className={`w-3 h-3 rounded-full ${rentStatus.color} ${rentStatus.label !== 'PAID' ? 'animate-pulse' : ''}`}></div>
                         <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border-2 ${rentStatus.bg} ${rentStatus.text} ${rentStatus.border}`}>
                           {rentStatus.label}
                         </span>
+                        {vendor.rentDue > 0 && (
+                          <span className="text-[10px] font-black text-slate-400">UGX {vendor.rentDue.toLocaleString()}</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-10 py-8">
                       <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border-2 ${vendor.status === 'ACTIVE' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
-                        {vendor.status === 'ACTIVE' ? 'OPERATIONAL' : 'OFFLINE'}
+                        {vendor.status === 'ACTIVE' ? 'ONLINE' : 'SUSPENDED'}
                       </span>
                     </td>
                     <td className="px-10 py-8 text-right">
                       <div className="flex justify-end gap-3">
                          <button 
                             onClick={(e) => { e.stopPropagation(); setQrModalVendor(vendor); }} 
-                            className="p-4 bg-slate-50 hover:bg-slate-950 hover:text-white rounded-[18px] transition-all shadow-sm border border-slate-100"
+                            className="p-4 bg-slate-50 hover:bg-slate-950 hover:text-white rounded-[18px] transition-all shadow-sm border border-slate-100 group/qr"
                             title="Generate Profile QR"
                          >
-                           <QrCode size={20} />
+                           <QrCode size={20} className="group-hover/qr:scale-110 transition-transform" />
                          </button>
                          <button className="p-4 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-[18px] transition-all shadow-sm border border-slate-100">
                            <ArrowUpDown size={20} className="rotate-90" />
@@ -306,7 +338,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                                 <Search size={64} />
                             </div>
                             <p className="font-black uppercase tracking-[0.2em] text-xs text-slate-900">Zero Nodes Triangulated</p>
-                            <p className="text-sm">No vendors found matching the current registry filters.</p>
+                            <p className="text-sm font-medium">No vendors found matching the current registry filters.</p>
                          </div>
                       </td>
                   </tr>
