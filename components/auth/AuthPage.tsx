@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Mail, Lock, User, Fingerprint, MessageSquare, Info, X, LayoutGrid, ArrowLeft, Loader2, Phone } from 'lucide-react';
 import { Card } from '../ui/Card';
@@ -88,6 +89,14 @@ export const AuthPage = ({ onSuccess }: AuthPageProps) => {
       setErrorMsg('');
   };
 
+  const navigateToContact = () => {
+      // Redirect or scroll on landing page
+      window.location.href = '#contact';
+      // If we are already in the SPA, the above might not work if it's not the landing page view.
+      // But based on the structure, we can assume the user will see the contact form on landing.
+      setMode('CONTACT');
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 relative">
       <Header 
@@ -161,7 +170,6 @@ export const AuthPage = ({ onSuccess }: AuthPageProps) => {
                 <Button className="w-full h-14 font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-100 mb-8" onClick={handleAuth} loading={loading}>Authorize Terminal</Button>
                 
                 <div className="mb-6 grid grid-cols-2 gap-2">
-                    {/* Render all dummy credentials including Gate Staff and User */}
                     {DUMMY_CREDENTIALS.map((cred) => (
                         <button 
                             key={cred.label}
@@ -177,7 +185,7 @@ export const AuthPage = ({ onSuccess }: AuthPageProps) => {
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     New entity? <button onClick={() => setMode('SIGNUP')} className="text-indigo-600 hover:underline">Register Now</button>
                   </p>
-                  <button onClick={() => setMode('CONTACT')} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors">
+                  <button onClick={navigateToContact} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors">
                     Contact Admin
                   </button>
                 </div>
@@ -215,7 +223,7 @@ export const AuthPage = ({ onSuccess }: AuthPageProps) => {
                     >
                         <ArrowLeft size={12} /> Back to Login
                     </button>
-                    <button onClick={() => setMode('CONTACT')} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors">
+                    <button onClick={navigateToContact} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors">
                         Contact Admin
                     </button>
                 </div>
@@ -227,14 +235,14 @@ export const AuthPage = ({ onSuccess }: AuthPageProps) => {
                 <h2 className="text-xl font-black mb-8 text-center text-slate-800 tracking-tight">Contact Administration</h2>
                 
                 <div className="space-y-6 mb-8">
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-4">
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-4 cursor-pointer hover:bg-indigo-50 transition-colors" onClick={() => window.location.href = '#contact'}>
                         <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">
-                            <Mail size={20} />
+                            <MessageSquare size={20} />
                         </div>
                         <div>
-                            <h4 className="font-bold text-sm text-slate-900">Email Support</h4>
-                            <p className="text-xs text-slate-500 mt-1">support@mmis.tevas.ug</p>
-                            <p className="text-[10px] text-slate-400 mt-1">Response time: 24h</p>
+                            <h4 className="font-bold text-sm text-slate-900">Contact Form</h4>
+                            <p className="text-xs text-slate-500 mt-1">Submit an official requisition.</p>
+                            <p className="text-[10px] text-indigo-500 mt-1 font-bold uppercase">Direct Access Node</p>
                         </div>
                     </div>
 
@@ -243,7 +251,7 @@ export const AuthPage = ({ onSuccess }: AuthPageProps) => {
                             <Phone size={20} />
                         </div>
                         <div>
-                            <h4 className="font-bold text-sm text-slate-900">Helpline</h4>
+                            <h4 className="font-bold text-sm text-slate-900">System Helpline</h4>
                             <p className="text-xs text-slate-500 mt-1">+256 800 123 456</p>
                             <p className="text-[10px] text-slate-400 mt-1">Mon-Fri, 8am - 5pm</p>
                         </div>

@@ -13,7 +13,8 @@ export enum MarketType {
   RETAIL = 'RETAIL',
   FARMERS = 'FARMERS',
   FLEA = 'FLEA',
-  SPECIALIZED = 'SPECIALIZED'
+  SPECIALIZED = 'SPECIALIZED',
+  MIXED = 'MIXED'
 }
 
 export enum ProductCategory {
@@ -89,6 +90,10 @@ export interface Market {
   type: MarketType;
   ownership: 'PUBLIC' | 'PRIVATE' | 'PPP';
   establishmentDate: string;
+  capacity: number;
+  primaryProducts: string[];
+  latitude: number;
+  longitude: number;
 }
 
 export interface Vendor {
@@ -107,6 +112,7 @@ export interface Vendor {
   section?: string;
   age: number;
   gender: 'MALE' | 'FEMALE';
+  lastPaymentDate?: string;
 }
 
 export interface Product {
@@ -128,6 +134,7 @@ export interface Transaction {
   status: 'PAID' | 'PENDING' | 'OVERDUE' | 'ESCROW' | 'FLAGGED';
   method: 'MTN_MOMO' | 'AIRTEL_MONEY' | 'BANK' | 'CASH';
   reference?: string;
+  description?: string;
 }
 
 export interface GateToken {

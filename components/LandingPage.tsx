@@ -3,8 +3,10 @@ import React, { useState } from 'react';
 import { 
   ShieldCheck, BarChart3, Truck, Users, ArrowRight, LayoutDashboard, 
   Menu, X, Check, Building2, Wallet, Zap, Camera, Globe, Mail, 
-  Phone, MapPin, Send, HelpCircle, Briefcase, Store
+  Phone, MapPin, Send, HelpCircle, Briefcase, Store, CheckCircle2, Loader2
 } from 'lucide-react';
+// Fixed: Added missing Card import
+import { Card } from './ui/Card';
 
 interface LandingPageProps {
   onLoginClick: () => void;
@@ -226,120 +228,129 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick }) => {
         </div>
       </section>
 
-      {/* Contact Section */}
+      {/* Contact Section - Enhanced Colors */}
       <section id="contact" className="py-32 bg-slate-900 text-white relative overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-600/20 rounded-full blur-[100px]"></div>
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-indigo-600/10 rounded-full blur-[100px]"></div>
+        <div className="absolute -top-24 -right-24 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px]"></div>
+        <div className="absolute -bottom-24 -left-24 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px]"></div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20">
             <div>
-              <h2 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-4">Contact</h2>
-              <h3 className="text-5xl font-black tracking-tighter mb-8 leading-tight">Let's build your <br/> digital market.</h3>
-              <p className="text-slate-400 font-medium text-lg leading-relaxed mb-12 max-w-md">Our technical team is ready to assist with onboarding your market or enterprise supply chain.</p>
+              <h2 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-4">Registry Access</h2>
+              <h3 className="text-6xl font-black tracking-tighter mb-10 leading-none">Let's build your <br/> <span className="text-indigo-400 underline decoration-indigo-400/20 underline-offset-8">digital market</span>.</h3>
+              <p className="text-slate-400 font-medium text-xl leading-relaxed mb-12 max-w-md">Our regional deployment specialists are ready to onboard your supply chain network or market infrastructure.</p>
               
               <div className="space-y-8">
-                <ContactInfo icon={<Mail size={24}/>} title="Email Inquiries" value="deploy@mmis.tevas.ug" subtitle="Technical & Sales" />
-                <ContactInfo icon={<Phone size={24}/>} title="Support Line" value="+256 800 123 456" subtitle="Mon - Fri, 8am - 5pm" />
-                <ContactInfo icon={<MapPin size={24}/>} title="Regional HQ" value="Kampala IT Park, Level 4" subtitle="Block C, Nakawa" />
+                <ContactInfo icon={<Mail size={24}/>} title="Direct Registry" value="deploy@mmis.tevas.ug" subtitle="Technical & Sales Engineering" />
+                <ContactInfo icon={<Phone size={24}/>} title="System Support" value="+256 800 123 456" subtitle="Operational Readiness (Mon - Fri)" />
+                <ContactInfo icon={<MapPin size={24}/>} title="Regional HQ" value="Kampala IT Park, Level 4" subtitle="Block C, Nakawa Division" />
               </div>
             </div>
 
-            <div className="bg-white p-10 rounded-[48px] shadow-2xl border border-white/20 relative group">
-              <div className="absolute inset-0 bg-indigo-600/10 rounded-[48px] blur-xl group-hover:bg-indigo-600/20 transition-all duration-700"></div>
-              <div className="relative z-10">
-                {contactStatus === 'SENT' ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center animate-in zoom-in duration-300">
-                    <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6 ring-4 ring-emerald-500/10">
-                      <CheckCircle2 size={40} />
+            <div className="relative">
+              <div className="absolute -inset-4 bg-white/5 blur-3xl rounded-[64px]"></div>
+              <Card className="bg-white p-12 rounded-[56px] shadow-2xl border border-white/10 relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
+                <div className="relative z-10">
+                  {contactStatus === 'SENT' ? (
+                    <div className="h-[400px] flex flex-col items-center justify-center text-center animate-in zoom-in duration-500">
+                      <div className="w-24 h-24 bg-emerald-50 text-emerald-600 rounded-[32px] flex items-center justify-center mb-8 shadow-2xl ring-4 ring-emerald-500/10">
+                        <CheckCircle2 size={48} />
+                      </div>
+                      <h4 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">Dispatch Verified</h4>
+                      <p className="text-slate-500 text-lg font-medium leading-relaxed max-w-xs mx-auto">A regional trade specialist will contact your node within 24 operational cycles.</p>
+                      <button onClick={() => setContactStatus('IDLE')} className="mt-10 px-8 py-3 bg-slate-900 text-white font-black uppercase text-[10px] tracking-widest rounded-full hover:bg-indigo-600 transition-all">Send Another Requisition</button>
                     </div>
-                    <h4 className="text-2xl font-black text-slate-900 mb-2">Message Dispatched</h4>
-                    <p className="text-slate-500 font-medium">A regional trade specialist will contact <br/> you within 24 operational hours.</p>
-                    <button onClick={() => setContactStatus('IDLE')} className="mt-8 text-indigo-600 font-black uppercase text-xs tracking-widest hover:text-indigo-700 underline">Send another</button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleContactSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Full Name</label>
-                        <input required className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-slate-900 placeholder:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all font-medium" placeholder="James Mukasa" />
+                  ) : (
+                    <form onSubmit={handleContactSubmit} className="space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Entity Head</label>
+                          <input required className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 text-slate-900 placeholder:text-slate-300 outline-none focus:border-indigo-600 focus:bg-white transition-all font-bold text-sm shadow-inner" placeholder="James Mukasa" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Registry Email</label>
+                          <input required type="email" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 text-slate-900 placeholder:text-slate-300 outline-none focus:border-indigo-600 focus:bg-white transition-all font-bold text-sm shadow-inner" placeholder="james@market.ug" />
+                        </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Work Email</label>
-                        <input required type="email" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-slate-900 placeholder:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all font-medium" placeholder="james@market.ug" />
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Inquiry Classification</label>
+                        <select className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 text-slate-900 outline-none focus:border-indigo-600 focus:bg-white transition-all font-bold text-sm shadow-inner appearance-none">
+                          <option>Market Administration Demo</option>
+                          <option>Bulk Supplier Integration</option>
+                          <option>System Node Partnership</option>
+                          <option>General Support Request</option>
+                        </select>
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Request Category</label>
-                      <select className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all font-medium appearance-none">
-                        <option>Market Administration Demo</option>
-                        <option>Bulk Supplier Registration</option>
-                        <option>Technical Partnership</option>
-                        <option>General Support</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Message</label>
-                      <textarea required rows={4} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-slate-900 placeholder:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all font-medium resize-none" placeholder="How can we help your operations?" />
-                    </div>
-                    <button 
-                      disabled={contactStatus === 'SENDING'}
-                      className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black uppercase tracking-widest text-xs rounded-2xl transition-all shadow-2xl shadow-indigo-900/20 flex items-center justify-center gap-3"
-                    >
-                      {contactStatus === 'SENDING' ? <><Loader2 className="animate-spin" size={18}/> Routing...</> : <><Send size={18}/> Initiate Contact</>}
-                    </button>
-                  </form>
-                )}
-              </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Message Buffer</label>
+                        <textarea required rows={5} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 text-slate-900 placeholder:text-slate-300 outline-none focus:border-indigo-600 focus:bg-white transition-all font-bold text-sm shadow-inner resize-none" placeholder="Describe your operational requirements..." />
+                      </div>
+                      <button 
+                        disabled={contactStatus === 'SENDING'}
+                        className="w-full py-6 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black uppercase tracking-[0.2em] text-[11px] rounded-3xl transition-all shadow-[0_20px_40px_rgba(79,70,229,0.3)] flex items-center justify-center gap-3"
+                      >
+                        {contactStatus === 'SENDING' ? <><Loader2 className="animate-spin" size={20}/> Routing Node...</> : <><Send size={20}/> Initiate Contact</>}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </Card>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 border-t border-white/5 py-16 text-slate-500">
+      <footer className="bg-slate-900 border-t border-white/5 py-24 text-slate-500">
          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
                <div className="col-span-1 md:col-span-1">
-                  <div className="flex items-center gap-2 text-white mb-6">
-                    <div className="bg-indigo-600 p-1.5 rounded-lg">
-                      <LayoutDashboard size={20} />
+                  <div className="flex items-center gap-2 text-white mb-8">
+                    <div className="bg-indigo-600 p-2 rounded-xl">
+                      <LayoutDashboard size={24} />
                     </div>
-                    <span className="font-black text-xl tracking-tighter">MMIS</span>
+                    <span className="font-black text-2xl tracking-tighter uppercase">MMIS HUB</span>
                   </div>
-                  <p className="text-sm leading-relaxed mb-6 font-medium">Standardizing African trade with regional logistics and digital identity layers.</p>
+                  <p className="text-sm leading-relaxed mb-8 font-medium">Standardizing African regional trade with high-fidelity logistics and digital identity layers. Engineered for market scale.</p>
+                  <div className="flex gap-4">
+                     <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-indigo-600 transition-colors cursor-pointer"><Globe size={18} className="text-white"/></div>
+                  </div>
                </div>
                <div>
-                 <h5 className="text-white font-black uppercase text-[10px] tracking-[0.2em] mb-6">Platform</h5>
-                 <ul className="space-y-4 text-sm font-bold">
-                    <li><a href="#" className="hover:text-indigo-400 transition-colors uppercase tracking-widest text-[10px]">Registry</a></li>
-                    <li><a href="#" className="hover:text-indigo-400 transition-colors uppercase tracking-widest text-[10px]">Gate Control</a></li>
-                    <li><a href="#" className="hover:text-indigo-400 transition-colors uppercase tracking-widest text-[10px]">Finance</a></li>
+                 <h5 className="text-indigo-400 font-black uppercase text-[10px] tracking-[0.3em] mb-8">Ecosystem Hub</h5>
+                 <ul className="space-y-5 text-xs font-bold">
+                    <li><a href="#" className="hover:text-white transition-colors uppercase tracking-widest opacity-60 hover:opacity-100">Market Registry</a></li>
+                    <li><a href="#" className="hover:text-white transition-colors uppercase tracking-widest opacity-60 hover:opacity-100">Gate Terminal</a></li>
+                    <li><a href="#" className="hover:text-white transition-colors uppercase tracking-widest opacity-60 hover:opacity-100">Revenue Triage</a></li>
+                    <li><a href="#" className="hover:text-white transition-colors uppercase tracking-widest opacity-60 hover:opacity-100">Supply Bridge</a></li>
                  </ul>
                </div>
                <div>
-                 <h5 className="text-white font-black uppercase text-[10px] tracking-[0.2em] mb-6">Resources</h5>
-                 <ul className="space-y-4 text-sm font-bold">
-                    <li><a href="#" className="hover:text-indigo-400 transition-colors uppercase tracking-widest text-[10px]">Developer API</a></li>
-                    <li><a href="#" className="hover:text-indigo-400 transition-colors uppercase tracking-widest text-[10px]">User Guides</a></li>
-                    <li><a href="#" className="hover:text-indigo-400 transition-colors uppercase tracking-widest text-[10px]">Security</a></li>
+                 <h5 className="text-indigo-400 font-black uppercase text-[10px] tracking-[0.3em] mb-8">Operator Nodes</h5>
+                 <ul className="space-y-5 text-xs font-bold">
+                    <li><a href="#" className="hover:text-white transition-colors uppercase tracking-widest opacity-60 hover:opacity-100">Developer API</a></li>
+                    <li><a href="#" className="hover:text-white transition-colors uppercase tracking-widest opacity-60 hover:opacity-100">Registry Guides</a></li>
+                    <li><a href="#" className="hover:text-white transition-colors uppercase tracking-widest opacity-60 hover:opacity-100">Compliance Doc</a></li>
+                    <li><a href="#" className="hover:text-white transition-colors uppercase tracking-widest opacity-60 hover:opacity-100">Trust Matrix</a></li>
                  </ul>
                </div>
                <div>
-                 <h5 className="text-white font-black uppercase text-[10px] tracking-[0.2em] mb-6">Legal</h5>
-                 <ul className="space-y-4 text-sm font-bold">
-                    <li><a href="#" className="hover:text-indigo-400 transition-colors uppercase tracking-widest text-[10px]">Privacy Policy</a></li>
-                    <li><a href="#" className="hover:text-indigo-400 transition-colors uppercase tracking-widest text-[10px]">Trade Terms</a></li>
-                    <li><a href="#" className="hover:text-indigo-400 transition-colors uppercase tracking-widest text-[10px]">License</a></li>
+                 <h5 className="text-indigo-400 font-black uppercase text-[10px] tracking-[0.3em] mb-8">System Entity</h5>
+                 <ul className="space-y-5 text-xs font-bold">
+                    <li><a href="#" className="hover:text-white transition-colors uppercase tracking-widest opacity-60 hover:opacity-100">Privacy Protocol</a></li>
+                    <li><a href="#" className="hover:text-white transition-colors uppercase tracking-widest opacity-60 hover:opacity-100">Trade Governance</a></li>
+                    <li><a href="#" className="hover:text-white transition-colors uppercase tracking-widest opacity-60 hover:opacity-100">Identity License</a></li>
                  </ul>
                </div>
             </div>
-            <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
-               <div className="text-[10px] font-black uppercase tracking-widest">
-                  &copy; {new Date().getFullYear()} Tevas Technologies. MMIS Regional v2.4.0
+            <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
+               <div className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-600">
+                  &copy; {new Date().getFullYear()} Tevas Technologies. MMIS-OS v2.5.0-ALPHA
                </div>
-               <div className="flex gap-8">
-                  <Globe size={18} className="hover:text-white cursor-pointer transition-colors" />
+               <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">All Systems Operational</span>
                </div>
             </div>
          </div>
@@ -349,35 +360,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick }) => {
 };
 
 const FeatureCard = ({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) => (
-  <div className="bg-white p-10 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-2xl transition-all hover:-translate-y-2 group">
-     <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mb-8 group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-inner">
-        {icon}
+  <div className="bg-white p-12 rounded-[48px] border-2 border-slate-50 shadow-sm hover:shadow-2xl transition-all hover:-translate-y-3 group overflow-hidden relative">
+     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/5 rounded-full -mr-16 -mt-16 group-hover:bg-indigo-600 group-hover:w-[1000px] group-hover:h-[1000px] transition-all duration-700 -z-0"></div>
+     <div className="relative z-10">
+        <div className="w-20 h-20 rounded-3xl bg-slate-50 flex items-center justify-center mb-10 group-hover:bg-white group-hover:text-indigo-600 transition-colors shadow-inner">
+            {icon}
+        </div>
+        <h3 className="text-2xl font-black text-slate-900 mb-4 tracking-tight group-hover:text-white transition-colors">{title}</h3>
+        <p className="text-sm text-slate-400 leading-relaxed font-medium group-hover:text-indigo-100 transition-colors">{desc}</p>
      </div>
-     <h3 className="text-xl font-black text-slate-900 mb-3 tracking-tight">{title}</h3>
-     <p className="text-sm text-slate-400 leading-relaxed font-medium">{desc}</p>
   </div>
 );
 
 const ContactInfo = ({ icon, title, value, subtitle }: { icon: any, title: string, value: string, subtitle: string }) => (
-  <div className="flex gap-6 group">
-    <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover:bg-indigo-600 transition-colors">
+  <div className="flex gap-8 group">
+    <div className="w-16 h-16 bg-white/5 rounded-[24px] flex items-center justify-center border border-white/10 group-hover:bg-indigo-600 group-hover:border-indigo-600 transition-all duration-300 shadow-xl">
       {icon}
     </div>
     <div>
-      <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">{title}</p>
-      <p className="text-xl font-bold mb-0.5">{value}</p>
-      <p className="text-xs text-slate-400 font-medium">{subtitle}</p>
+      <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2">{title}</p>
+      <p className="text-2xl font-black mb-1 group-hover:text-indigo-400 transition-colors">{value}</p>
+      <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">{subtitle}</p>
     </div>
   </div>
-);
-
-const CheckCircle2 = ({ size, className = "" }: { size: number, className?: string }) => (
-  <Check size={size} className={className} />
-);
-
-const Loader2 = ({ size, className = "" }: { size: number, className?: string }) => (
-  <svg className={`animate-spin ${className}`} width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-  </svg>
 );

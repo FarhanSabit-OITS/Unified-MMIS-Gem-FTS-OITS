@@ -6,9 +6,54 @@ import {
 } from "./types";
 
 export const MARKETS: Market[] = [
-  { id: 'm1', cityId: 'c1', name: 'Nakasero Fresh Hub', type: MarketType.FARMERS, ownership: 'PUBLIC', establishmentDate: '1927-01-01' },
-  { id: 'm2', cityId: 'c1', name: 'Owino Wholesale', type: MarketType.WHOLESALE, ownership: 'PUBLIC', establishmentDate: '1971-06-15' },
-  { id: 'm3', cityId: 'c2', name: 'Mbarara Specialized', type: MarketType.SPECIALIZED, ownership: 'PPP', establishmentDate: '2010-03-20' },
+  { 
+    id: 'm1', 
+    cityId: 'c1', 
+    name: 'Nakasero Fresh Hub', 
+    type: MarketType.FARMERS, 
+    ownership: 'PUBLIC', 
+    establishmentDate: '1927-01-01',
+    capacity: 1200,
+    primaryProducts: ['Matooke', 'Vegetables', 'Fruits', 'Poultry'],
+    latitude: 0.3136,
+    longitude: 32.5811
+  },
+  { 
+    id: 'm2', 
+    cityId: 'c1', 
+    name: 'Owino Wholesale', 
+    type: MarketType.WHOLESALE, 
+    ownership: 'PUBLIC', 
+    establishmentDate: '1971-06-15',
+    capacity: 50000,
+    primaryProducts: ['Textiles', 'Electronics', 'Footwear', 'Hardware'],
+    latitude: 0.3102,
+    longitude: 32.5768
+  },
+  { 
+    id: 'm3', 
+    cityId: 'c2', 
+    name: 'Mbarara Specialized', 
+    type: MarketType.SPECIALIZED, 
+    ownership: 'PPP', 
+    establishmentDate: '2010-03-20',
+    capacity: 5000,
+    primaryProducts: ['Dairy Products', 'Beef', 'Grains'],
+    latitude: -0.6071,
+    longitude: 30.6545
+  },
+  { 
+    id: 'm4', 
+    cityId: 'c1', 
+    name: 'Wandegeya Multi-Node', 
+    type: MarketType.MIXED, 
+    ownership: 'PUBLIC', 
+    establishmentDate: '2014-01-10',
+    capacity: 800,
+    primaryProducts: ['Groceries', 'Cooked Food', 'Services'],
+    latitude: 0.3325,
+    longitude: 32.5744
+  },
 ];
 
 export const CITIES = [
@@ -19,9 +64,11 @@ export const CITIES = [
 ];
 
 export const MOCK_VENDORS: Vendor[] = [
-  { id: 'v1', name: 'Alice Namatovu', shopNumber: 'A-101', marketId: 'm1', status: 'ACTIVE', rentDue: 0, rentDueDate: '2024-06-01', productsCount: 120, kycVerified: true, email: 'alice.n@example.com', phone: '+256 772 123 456', storeType: ProductCategory.GROCERIES, age: 34, gender: 'FEMALE' },
-  { id: 'v2', name: 'John Okello', shopNumber: 'B-005', marketId: 'm1', status: 'SUSPENDED', rentDue: 750000, rentDueDate: '2024-05-15', productsCount: 50, kycVerified: true, email: 'john.ok@example.com', phone: '+256 701 987 654', storeType: ProductCategory.ELECTRONICS, age: 45, gender: 'MALE' },
-  { id: 'v3', name: 'Sarah Akello', shopNumber: 'C-202', marketId: 'm2', status: 'ACTIVE', rentDue: 150000, rentDueDate: '2024-05-20', productsCount: 300, kycVerified: false, email: 'sarah.ak@example.com', phone: '+256 753 555 444', storeType: ProductCategory.TEXTILES, age: 28, gender: 'FEMALE' },
+  { id: 'v1', name: 'Alice Namatovu', shopNumber: 'A-101', marketId: 'm1', status: 'ACTIVE', rentDue: 0, rentDueDate: '2024-07-01', productsCount: 120, kycVerified: true, email: 'alice.n@mmis.ug', phone: '+256 772 123 456', storeType: ProductCategory.GROCERIES, age: 34, gender: 'FEMALE', section: 'FRESH_PRODUCE' },
+  { id: 'v2', name: 'John Okello', shopNumber: 'B-005', marketId: 'm1', status: 'SUSPENDED', rentDue: 750000, rentDueDate: '2024-05-15', productsCount: 50, kycVerified: true, email: 'john.ok@mmis.ug', phone: '+256 701 987 654', storeType: ProductCategory.ELECTRONICS, age: 45, gender: 'MALE', section: 'DIGITAL_ZONE' },
+  { id: 'v3', name: 'Sarah Akello', shopNumber: 'C-202', marketId: 'm2', status: 'ACTIVE', rentDue: 150000, rentDueDate: '2024-05-20', productsCount: 300, kycVerified: false, email: 'sarah.ak@mmis.ug', phone: '+256 753 555 444', storeType: ProductCategory.TEXTILES, age: 28, gender: 'FEMALE', section: 'APPAREL_HUB' },
+  { id: 'v4', name: 'Kabuye Moses', shopNumber: 'D-102', marketId: 'm1', status: 'ACTIVE', rentDue: 2000000, rentDueDate: '2024-04-01', productsCount: 85, kycVerified: true, email: 'kabuye.m@mmis.ug', phone: '+256 782 111 222', storeType: ProductCategory.HARDWARE, age: 52, gender: 'MALE', section: 'CONSTRUCTION_ROW' },
+  { id: 'v5', name: 'Nakato Mary', shopNumber: 'A-210', marketId: 'm2', status: 'ACTIVE', rentDue: 0, rentDueDate: '2024-06-30', productsCount: 210, kycVerified: true, email: 'mary.n@mmis.ug', phone: '+256 700 333 444', storeType: ProductCategory.GROCERIES, age: 31, gender: 'FEMALE', section: 'SPICE_ALLEY' },
 ];
 
 export const MOCK_PRODUCTS: Product[] = [
@@ -31,10 +78,21 @@ export const MOCK_PRODUCTS: Product[] = [
 ];
 
 export const MOCK_TRANSACTIONS: Transaction[] = [
-  { id: 'tx1', entityId: 'v2', date: '2023-11-01', amount: 200000, type: PaymentType.RENT, status: 'PAID', method: 'MTN_MOMO', reference: 'RENT-NOV-V2' },
-  { id: 'tx2', entityId: 'gate', date: '2023-11-02', amount: 5000, type: PaymentType.GATE_FEE, status: 'PAID', method: 'CASH' },
-  { id: 'tx3', entityId: 'v1', date: '2023-11-03', amount: 18000, type: PaymentType.URA_VAT, status: 'PENDING', method: 'AIRTEL_MONEY' },
-  { id: 'tx4', entityId: 'v3', date: '2023-11-04', amount: 45000, type: PaymentType.UTILITY, status: 'PAID', method: 'BANK' },
+  // History for Alice (v1) - Paid
+  { id: 'tx-v1-1', entityId: 'v1', date: '2024-05-01', amount: 500000, type: PaymentType.RENT, status: 'PAID', method: 'MTN_MOMO', reference: 'RENT-MAY-V1', description: 'Monthly Shop Rent' },
+  { id: 'tx-v1-2', entityId: 'v1', date: '2024-05-01', amount: 90000, type: PaymentType.URA_VAT, status: 'PAID', method: 'MTN_MOMO', reference: 'VAT-MAY-V1', description: 'URA VAT Compliance' },
+  { id: 'tx-v1-3', entityId: 'v1', date: '2024-04-02', amount: 500000, type: PaymentType.RENT, status: 'PAID', method: 'BANK', reference: 'RENT-APR-V1' },
+  
+  // History for John (v2) - Pending/Overdue
+  { id: 'tx-v2-1', entityId: 'v2', date: '2024-05-15', amount: 750000, type: PaymentType.RENT, status: 'OVERDUE', method: 'CASH', reference: 'RENT-MAY-V2' },
+  { id: 'tx-v2-2', entityId: 'v2', date: '2024-05-15', amount: 135000, type: PaymentType.URA_VAT, status: 'PENDING', method: 'AIRTEL_MONEY', reference: 'VAT-MAY-V2' },
+  
+  // History for Sarah (v3) - Pending
+  { id: 'tx-v3-1', entityId: 'v3', date: '2024-05-20', amount: 150000, type: PaymentType.RENT, status: 'PENDING', method: 'AIRTEL_MONEY', reference: 'RENT-MAY-V3' },
+  
+  // System/Gate Transactions
+  { id: 'tx-g1', entityId: 'gate-01', date: '2024-05-18', amount: 15000, type: PaymentType.GATE_FEE, status: 'PAID', method: 'CASH', reference: 'GATE-ENTRY-001' },
+  { id: 'tx-g2', entityId: 'gate-01', date: '2024-05-18', amount: 2000, type: PaymentType.GATE_FEE, status: 'PAID', method: 'MTN_MOMO', reference: 'GATE-ENTRY-002' },
 ];
 
 export const MOCK_BIDS: Bid[] = [
@@ -42,7 +100,7 @@ export const MOCK_BIDS: Bid[] = [
 ];
 
 export const MOCK_REQUISITIONS: Requisition[] = [
-  { id: 'req1', vendorId: 'v1', vendorName: 'Alice Namatovu', items: [{ name: 'Onions', qty: 50, unit: 'Sacks' }], status: 'OPEN', createdAt: '2023-11-01T08:00:00Z', deadline: '2023-11-10T17:00:00Z', marketId: 'm1' },
+  { id: 'req1', vendorId: 'v1', vendorName: 'Alice Namatovu', items: [{ name: 'Onions', qty: 50, unit: 'Sacks' }], status: 'OPEN', createdAt: '2024-05-01T08:00:00Z', deadline: '2024-05-10T17:00:00Z', marketId: 'm1' },
 ];
 
 export const MOCK_SUPPLIERS: Supplier[] = [

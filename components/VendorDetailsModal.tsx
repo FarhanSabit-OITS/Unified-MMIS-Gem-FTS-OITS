@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Vendor, Transaction, UserRole } from '../types';
-import { MOCK_TRANSACTIONS } from '../constants';
+import { Vendor, Transaction, UserRole, Market, PaymentType } from '../types';
+import { MOCK_TRANSACTIONS, MARKETS, CITIES } from '../constants';
 import { 
   X, User, History, FileText, StickyNote, AlertTriangle, Building2, MapPin, 
   Phone, Mail, Ban, Search, ArrowUpDown, Save, ShieldAlert, CreditCard, 
   Store, UserCheck, CheckCircle, Edit3, Loader2, Clock, ShieldCheck, Tag,
-  Calendar, Wallet
+  Calendar, Wallet, Info, Filter, Receipt
 } from 'lucide-react';
 import { Button } from './ui/Button';
 
@@ -21,13 +21,24 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
   vendor, userRole, onClose, onUpdateVendor 
 }) => {
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'HISTORY' | 'DOCUMENTS' | 'EDIT'>('OVERVIEW');
+  const [historyFilter, setHistoryFilter] = useState<'ALL' | 'RENT' | 'VAT'>('ALL');
   const [editedData, setEditedData] = useState<Vendor>({ ...vendor });
   const [isSaving, setIsSaving] = useState(false);
 
   const isAdmin = userRole === UserRole.SUPER_ADMIN || userRole === UserRole.MARKET_ADMIN;
 
-  // Filter transactions for this specific vendor
-  const vendorTransactions = MOCK_TRANSACTIONS.filter(t => t.entityId === vendor.id);
+  // Resolve Market and City details
+  const market = MARKETS.find(m => m.id === vendor.marketId);
+  const city = CITIES.find(c => c.id === market?.cityId);
+
+  // Filter transactions for this specific vendor, specifically focusing on Rent and VAT
+  const vendorTransactions = MOCK_TRANSACTIONS.filter(t => {
+    const isOwner = t.entityId === vendor.id;
+    if (!isOwner) return false;
+    if (historyFilter === 'RENT') return t.type === PaymentType.RENT;
+    if (historyFilter === 'VAT') return t.type === PaymentType.URA_VAT;
+    return true;
+  });
 
   const handleSave = () => {
     setIsSaving(true);
@@ -77,7 +88,8 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
         <div className="p-8 space-y-6 overflow-y-auto bg-white flex-1">
            {activeTab === 'OVERVIEW' && (
                <div className="space-y-8 animate-in fade-in">
-                <div className="grid grid-cols-2 gap-6">
+                {/* Financial & Inventory Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className={`p-6 rounded-[24px] border-2 flex flex-col justify-between ${vendor.rentDue > 0 ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
                         <div>
                             <div className="text-[10px] font-black uppercase text-slate-400 mb-1 tracking-widest">Arrears Balance</div>
@@ -103,6 +115,37 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
                     </div>
                 </div>
 
+                {/* Market Allocation Information */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <Info size={14} className="text-indigo-500" /> Market Allocation Profile
+                  </h4>
+                  <div className="bg-indigo-50/30 rounded-2xl border border-indigo-100/50 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-indigo-100 flex items-center justify-center text-indigo-600">
+                        <Building2 size={24} />
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Assigned Hub</p>
+                        <p className="text-lg font-black text-slate-900 tracking-tight">{market?.name || 'No Market Assigned'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-8">
+                       <div>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Classification</p>
+                          <p className="text-sm font-bold text-slate-700">{market?.type || 'N/A'}</p>
+                       </div>
+                       <div className="border-l border-indigo-100 pl-8">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                            <MapPin size={10} className="text-red-400" /> Regional Node
+                          </p>
+                          <p className="text-sm font-bold text-slate-700">{city?.name || 'Unknown Region'}</p>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Entity Details Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <Mail className="text-slate-400" size={20} />
@@ -113,8 +156,8 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
                         <div><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mobile Contact</p><p className="text-sm font-bold text-slate-800">{vendor.phone || '+256 000 000 000'}</p></div>
                     </div>
                     <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <Building2 className="text-slate-400" size={20} />
-                        <div><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Allocated Unit</p><p className="text-sm font-bold text-slate-800">Unit {vendor.shopNumber} • {vendor.section || 'General'}</p></div>
+                        <Store className="text-slate-400" size={20} />
+                        <div><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Allocated Unit</p><p className="text-sm font-bold text-slate-800">Unit {vendor.shopNumber} • {vendor.section || 'General Sector'}</p></div>
                     </div>
                     <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <Tag className="text-slate-400" size={20} />
@@ -127,21 +170,21 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
            {activeTab === 'HISTORY' && (
                <div className="space-y-4 animate-in fade-in">
                    <div className="flex justify-between items-center mb-2">
-                       <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Financial Telemetry Log</h4>
-                       <div className="flex gap-2">
-                            <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                                <CheckCircle size={10} /> Verified
-                            </span>
+                       <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Fiscal History Ledger</h4>
+                       <div className="flex gap-2 bg-slate-100 p-1 rounded-xl">
+                            <button onClick={() => setHistoryFilter('ALL')} className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase transition-all ${historyFilter === 'ALL' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}>All</button>
+                            <button onClick={() => setHistoryFilter('RENT')} className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase transition-all ${historyFilter === 'RENT' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}>Rent Only</button>
+                            <button onClick={() => setHistoryFilter('VAT')} className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase transition-all ${historyFilter === 'VAT' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}>VAT Only</button>
                        </div>
                    </div>
                    <div className="bg-slate-900 rounded-[24px] overflow-hidden border border-slate-800 shadow-2xl">
                        <table className="w-full text-[11px] text-left text-slate-300">
                            <thead className="bg-slate-800/50 text-slate-400 font-black uppercase tracking-widest border-b border-slate-800">
                                <tr>
-                                   <th className="px-5 py-5 text-indigo-400">Ref / Type</th>
-                                   <th className="px-5 py-5">Date</th>
-                                   <th className="px-5 py-5">Method</th>
-                                   <th className="px-5 py-5 text-right">Amount (UGX)</th>
+                                   <th className="px-5 py-5 text-indigo-400">Classification</th>
+                                   <th className="px-5 py-5">Event Date</th>
+                                   <th className="px-5 py-5">Settlement Method</th>
+                                   <th className="px-5 py-5 text-right">Magnitude (UGX)</th>
                                    <th className="px-5 py-5 text-center">Status</th>
                                </tr>
                            </thead>
@@ -149,8 +192,15 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
                                {vendorTransactions.map(tx => (
                                    <tr key={tx.id} className="hover:bg-indigo-600/5 transition-colors group">
                                        <td className="px-5 py-5">
-                                           <div className="font-mono text-indigo-400 font-bold uppercase tracking-tight group-hover:text-indigo-300">{tx.reference || tx.id}</div>
-                                           <div className="text-[9px] text-slate-500 font-black uppercase mt-0.5">{tx.type.replace('_', ' ')}</div>
+                                           <div className="flex items-center gap-3">
+                                                <div className={`p-2 rounded-lg ${tx.type === PaymentType.RENT ? 'bg-amber-500/10 text-amber-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                                                    {tx.type === PaymentType.RENT ? <Store size={14}/> : <Receipt size={14}/>}
+                                                </div>
+                                                <div>
+                                                    <div className="font-mono text-indigo-400 font-bold uppercase tracking-tight group-hover:text-indigo-300">{tx.reference || tx.id}</div>
+                                                    <div className="text-[9px] text-slate-500 font-black uppercase mt-0.5">{tx.type.replace('_', ' ')}</div>
+                                                </div>
+                                           </div>
                                        </td>
                                        <td className="px-5 py-5 text-slate-400 font-bold">{tx.date}</td>
                                        <td className="px-5 py-5">
@@ -166,7 +216,11 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
                                            {tx.amount.toLocaleString()}
                                        </td>
                                        <td className="px-5 py-5 text-center">
-                                           <span className={`px-2 py-0.5 rounded-full font-black uppercase text-[8px] tracking-widest ${tx.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                                           <span className={`px-3 py-1 rounded-full font-black uppercase text-[8px] tracking-widest border ${
+                                               tx.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 
+                                               tx.status === 'PENDING' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
+                                               'bg-red-500/20 text-red-400 border-red-500/30'
+                                           }`}>
                                                {tx.status}
                                            </span>
                                        </td>

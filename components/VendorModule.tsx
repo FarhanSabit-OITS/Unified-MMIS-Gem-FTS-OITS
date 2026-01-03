@@ -1,16 +1,16 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Vendor, UserRole, ProductCategory } from '../types';
 import { MOCK_VENDORS, CITIES, MARKETS } from '../constants';
 import { ApiService } from '../services/api';
-import { VendorKYCForm } from './VendorKYCForm';
-import { VendorDetailsModal } from './VendorDetailsModal';
 import { 
   Search, QrCode, CheckCircle, Save, AlertTriangle, UserPlus, Loader2,
   RefreshCcw, Store, ArrowUpDown, ArrowUp, ArrowDown, Calendar, ShieldCheck,
-  CheckSquare, Square, Play, Ban, X, Download, FileText, Printer
+  Play, Ban, X, Download, FileText, Printer, MoreVertical, Check, ListFilter,
+  CheckSquare, Square, Filter
 } from 'lucide-react';
 import { Button } from './ui/Button';
+import { VendorDetailsModal } from './VendorDetailsModal';
 
 interface VendorModuleProps {
   userRole?: UserRole;
@@ -22,367 +22,324 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   const [vendors, setVendors] = useState<Vendor[]>(MOCK_VENDORS);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Selection State
-  const [selectedVendorIds, setSelectedVendorIds] = useState<string[]>([]);
+  // Selection State for Bulk Actions
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   
-  // Toolbar Filters
+  // Toolbar Filters & Sort
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCity, setSelectedCity] = useState('');
-  const [selectedMarket, setSelectedMarket] = useState('');
+  const [selectedMarket, setSelectedMarket] = useState(marketId || 'ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [rentDueFilter, setRentDueFilter] = useState('ALL');
-  const [rentSortOrder, setRentSortOrder] = useState<'NONE' | 'ASC' | 'DESC'>('NONE');
-  const [nameSortOrder, setNameSortOrder] = useState<'NONE' | 'ASC' | 'DESC'>('NONE');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [nameSortOrder, setNameSortOrder] = useState<'ASC' | 'DESC' | null>(null);
   
   // Modals
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [qrModalVendor, setQrModalVendor] = useState<Vendor | null>(null);
-  const [showAddVendorModal, setShowAddVendorModal] = useState(false);
-  const [addVendorStep, setAddVendorStep] = useState<'FORM' | 'SUCCESS'>('FORM');
   
-  const [isKycValid, setIsKycValid] = useState(false);
-  const [isSubmittingNewVendor, setIsSubmittingNewVendor] = useState(false);
-
-  const [newVendorData, setNewVendorData] = useState({
-    name: '', shopNumber: '', marketId: marketId || '', email: '', phone: '',
-    rentDue: 0, rentDueDate: '', vatDue: 0, status: 'ACTIVE' as 'ACTIVE' | 'SUSPENDED',
-    kycVerified: false, gender: 'MALE' as 'MALE' | 'FEMALE', age: 30,
-    cityId: '', level: '', section: '', storeType: ProductCategory.GENERAL, ownershipType: 'Sole Proprietorship'
-  });
-
-  const isAdmin = userRole === UserRole.SUPER_ADMIN || userRole === UserRole.MARKET_ADMIN;
+  const isSuperAdmin = userRole === UserRole.SUPER_ADMIN;
   const isMarketAdmin = userRole === UserRole.MARKET_ADMIN;
-
-  const getMarketName = (id: string) => MARKETS.find(m => m.id === id)?.name || id;
+  const isAdmin = isSuperAdmin || isMarketAdmin;
 
   const getRentStatus = (vendor: Vendor) => {
-    if (vendor.rentDue <= 0) return { label: 'Paid', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+    if (vendor.rentDue <= 0) {
+      return { 
+        label: 'PAID', 
+        color: 'bg-emerald-500 shadow-[0_0_8px_#10b981]', 
+        text: 'text-emerald-700', 
+        bg: 'bg-emerald-50', 
+        border: 'border-emerald-100' 
+      };
+    }
+    
     const dueDate = vendor.rentDueDate ? new Date(vendor.rentDueDate) : null;
-    const today = new Date();
-    if (dueDate && dueDate < today) return { label: 'Overdue', color: 'bg-red-100 text-red-700 border-red-200' };
-    return { label: 'Pending', color: 'bg-amber-100 text-amber-700 border-amber-200' };
+    const isOverdue = dueDate && dueDate < new Date();
+    
+    if (isOverdue) {
+      return { 
+        label: 'OVERDUE', 
+        color: 'bg-rose-500 shadow-[0_0_8px_#f43f5e]', 
+        text: 'text-rose-700', 
+        bg: 'bg-rose-50', 
+        border: 'border-rose-100' 
+      };
+    }
+    
+    return { 
+      label: 'PENDING', 
+      color: 'bg-amber-500 shadow-[0_0_8px_#f59e0b]', 
+      text: 'text-amber-700', 
+      bg: 'bg-amber-50', 
+      border: 'border-amber-100' 
+    };
   };
 
-  useEffect(() => {
-    const fetchVendors = async () => {
-      setIsLoading(true);
-      try {
-        const response = await ApiService.vendors.getAll();
-        if (response.data && Array.isArray(response.data)) setVendors(response.data);
-      } catch (error) {
-        console.warn("Backend API unavailable, using mock data.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchVendors();
-  }, []);
+  const filteredAndSortedVendors = useMemo(() => {
+    let result = vendors.filter(v => {
+      const term = searchTerm.toLowerCase();
+      const matchesSearch = v.name.toLowerCase().includes(term) || v.shopNumber.toLowerCase().includes(term);
+      const matchesStatus = statusFilter === 'ALL' || v.status === statusFilter;
+      const matchesMarket = selectedMarket === 'ALL' || v.marketId === selectedMarket;
+      const matchesCategory = categoryFilter === 'ALL' || v.storeType === categoryFilter;
+      return matchesSearch && matchesStatus && matchesMarket && matchesCategory;
+    });
 
-  const filteredVendors = vendors.filter(v => {
-    if (isMarketAdmin && marketId && v.marketId !== marketId) return false;
-
-    const term = searchTerm.toLowerCase();
-    const matchesSearch = v.name.toLowerCase().includes(term) || 
-                          v.shopNumber.toLowerCase().includes(term) ||
-                          (v.email && v.email.toLowerCase().includes(term));
-                          
-    const matchesStatus = statusFilter === 'ALL' || v.status === statusFilter;
-    const matchesMarket = selectedMarket ? v.marketId === selectedMarket : true;
-    const market = MARKETS.find(m => m.id === v.marketId);
-    const matchesCity = selectedCity ? market?.cityId === selectedCity : true;
-
-    let matchesRentRange = true;
-    if (rentDueFilter === '0-50K') matchesRentRange = v.rentDue >= 0 && v.rentDue <= 50000;
-    else if (rentDueFilter === '50K-200K') matchesRentRange = v.rentDue > 50000 && v.rentDue <= 200000;
-    else if (rentDueFilter === '200K+') matchesRentRange = v.rentDue > 200000;
-
-    return matchesSearch && matchesStatus && matchesMarket && matchesCity && matchesRentRange;
-  }).sort((a, b) => {
-    if (nameSortOrder !== 'NONE') {
-      const comparison = a.name.localeCompare(b.name);
-      return nameSortOrder === 'ASC' ? comparison : -comparison;
+    if (nameSortOrder) {
+      result = [...result].sort((a, b) => {
+        const comparison = a.name.localeCompare(b.name);
+        return nameSortOrder === 'ASC' ? comparison : -comparison;
+      });
     }
-    if (rentSortOrder === 'ASC') return a.rentDue - b.rentDue;
-    if (rentSortOrder === 'DESC') return b.rentDue - a.rentDue;
-    return 0;
-  });
+
+    return result;
+  }, [vendors, searchTerm, statusFilter, categoryFilter, selectedMarket, nameSortOrder]);
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
 
   const toggleSelectAll = () => {
-    if (selectedVendorIds.length === filteredVendors.length) {
-      setSelectedVendorIds([]);
+    if (selectedIds.size === filteredAndSortedVendors.length && filteredAndSortedVendors.length > 0) {
+      setSelectedIds(new Set());
     } else {
-      setSelectedVendorIds(filteredVendors.map(v => v.id));
+      setSelectedIds(new Set(filteredAndSortedVendors.map(v => v.id)));
     }
-  };
-
-  const toggleSelectVendor = (id: string) => {
-    setSelectedVendorIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
   };
 
   const handleBulkAction = (action: 'ACTIVATE' | 'SUSPEND') => {
-    if (selectedVendorIds.length === 0) return;
-    const status = action === 'ACTIVATE' ? 'ACTIVE' : 'SUSPENDED';
+    if (selectedIds.size === 0) return;
+    const nextStatus = action === 'ACTIVATE' ? 'ACTIVE' : 'SUSPENDED';
+    
     setVendors(prev => prev.map(v => 
-      selectedVendorIds.includes(v.id) ? { ...v, status: status as any } : v
+      selectedIds.has(v.id) ? { ...v, status: nextStatus as any } : v
     ));
-    setSelectedVendorIds([]);
-    alert(`Bulk ${action} completed for ${selectedVendorIds.length} nodes.`);
+    setSelectedIds(new Set());
+    alert(`Bulk Operation Successful: ${selectedIds.size} nodes updated.`);
   };
 
   const toggleNameSort = () => {
-    setRentSortOrder('NONE');
-    setNameSortOrder(prev => prev === 'NONE' ? 'ASC' : prev === 'ASC' ? 'DESC' : 'NONE');
-  };
-
-  const toggleRentSort = () => {
-    setNameSortOrder('NONE');
-    setRentSortOrder(prev => prev === 'NONE' ? 'ASC' : prev === 'ASC' ? 'DESC' : 'NONE');
-  };
-
-  const handleSubmitNewVendor = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newVendorData.name || !newVendorData.shopNumber || !newVendorData.marketId) {
-      alert("Missing required fields."); return;
-    }
-    if (!isKycValid) {
-      alert("Please upload valid KYC documents."); return;
-    }
-    setIsSubmittingNewVendor(true);
-    setTimeout(() => {
-      setIsSubmittingNewVendor(false);
-      const newV: Vendor = {
-        id: `v${Date.now()}`,
-        ...newVendorData,
-        productsCount: 0,
-        kycVerified: newVendorData.kycVerified,
-      };
-      setVendors(prev => [newV, ...prev]);
-      setAddVendorStep('SUCCESS');
-    }, 1200);
-  };
-
-  const resetAddVendorModal = () => {
-    setShowAddVendorModal(false);
-    setAddVendorStep('FORM');
-    setIsKycValid(false);
-    setNewVendorData({ 
-        name: '', shopNumber: '', marketId: isMarketAdmin && marketId ? marketId : '', 
-        email: '', phone: '', rentDue: 0, rentDueDate: '', vatDue: 0, status: 'ACTIVE', 
-        kycVerified: false, gender: 'MALE', age: 30, cityId: '', level: '', 
-        section: '', storeType: ProductCategory.GENERAL, ownershipType: 'Sole Proprietorship' 
+    setNameSortOrder(prev => {
+      if (prev === null) return 'ASC';
+      if (prev === 'ASC') return 'DESC';
+      return null;
     });
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in">
-      {/* Bulk Action Toolbar */}
-      {selectedVendorIds.length > 0 && isMarketAdmin && (
-        <div className="bg-indigo-600 p-4 rounded-xl shadow-lg flex items-center justify-between animate-in slide-in-from-top-4 text-white">
-          <div className="flex items-center gap-4">
-             <div className="bg-white/20 p-2 rounded-lg font-black text-xs">{selectedVendorIds.length} Selected</div>
-             <p className="text-sm font-bold hidden md:block">Registry batch operations active.</p>
-          </div>
-          <div className="flex gap-2">
-             <button onClick={() => handleBulkAction('ACTIVATE')} className="px-4 py-2 bg-white text-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
-                <Play size={14}/> Activate All
-             </button>
-             <button onClick={() => handleBulkAction('SUSPEND')} className="px-4 py-2 bg-red-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-red-600 transition-all shadow-sm">
-                <Ban size={14}/> Suspend All
-             </button>
-             <button onClick={() => setSelectedVendorIds([])} className="p-2 text-white/60 hover:text-white"><X size={20}/></button>
-          </div>
+    <div className="space-y-6 animate-in fade-in pb-20">
+      {/* Header & Meta */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-6 border-b border-slate-200">
+        <div className="flex items-center gap-5">
+           <div className="w-16 h-16 bg-slate-950 text-white rounded-[24px] flex items-center justify-center shadow-2xl ring-4 ring-slate-100">
+             <Store size={32} className="text-indigo-400" />
+           </div>
+           <div>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Vendor Ledger</h2>
+              <p className="text-slate-500 font-medium text-lg">Real-time triangulation of commercial entities.</p>
+           </div>
         </div>
-      )}
+        
+        {isAdmin && selectedIds.size > 0 ? (
+          <div className="flex gap-2 animate-in slide-in-from-right-4">
+             <Button onClick={() => handleBulkAction('ACTIVATE')} className="bg-emerald-600 hover:bg-emerald-700 h-14 px-8 font-black uppercase text-[10px] tracking-[0.2em] shadow-2xl shadow-emerald-200">
+                <Play size={14} className="mr-2"/> Bulk Activate
+             </Button>
+             <Button onClick={() => handleBulkAction('SUSPEND')} className="bg-slate-950 hover:bg-black h-14 px-8 font-black uppercase text-[10px] tracking-[0.2em] shadow-2xl">
+                <Ban size={14} className="mr-2"/> Bulk Suspend
+             </Button>
+          </div>
+        ) : isAdmin && (
+          <Button className="h-14 px-8 font-black uppercase text-[10px] tracking-[0.2em] bg-indigo-600 hover:bg-indigo-700 shadow-2xl shadow-indigo-100">
+            <UserPlus size={18} className="mr-2"/> Register New Node
+          </Button>
+        )}
+      </div>
 
-      {/* Filter Toolbar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
-        <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto">
-          <div className="relative w-full md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+      {/* Control Bar */}
+      <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-xl flex flex-wrap gap-6 items-end justify-between">
+        <div className="flex flex-wrap gap-6 flex-1">
+          <div className="relative flex-1 min-w-[300px]">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input 
               type="text" 
-              placeholder="Search Name or Shop..." 
-              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+              placeholder="Deep search entity, unit or registry ID..." 
+              className="w-full pl-16 pr-8 py-5 rounded-[24px] border-2 border-slate-100 bg-slate-50 font-bold text-sm text-slate-950 focus:bg-white focus:border-indigo-600 outline-none transition-all shadow-inner"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           
-          <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-            <select className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 outline-none" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                <option value="ALL">All Status</option>
-                <option value="ACTIVE">Active</option>
-                <option value="SUSPENDED">Suspended</option>
-            </select>
-            
-            <div className="flex items-center gap-1 border border-slate-200 rounded-lg bg-slate-50 overflow-hidden">
-                <select className="px-3 py-2 text-sm bg-transparent outline-none border-none" value={rentDueFilter} onChange={(e) => setRentDueFilter(e.target.value)}>
-                    <option value="ALL">All Ranges</option>
-                    <option value="0-50K">0 - 50K</option>
-                    <option value="50K-200K">50K - 200K</option>
-                    <option value="200K+">200K+</option>
-                </select>
-                <button 
-                    onClick={toggleRentSort}
-                    className={`px-3 py-2 transition-colors hover:bg-slate-200 flex items-center gap-1 border-l border-slate-200 ${rentSortOrder !== 'NONE' ? 'text-indigo-600 font-bold' : 'text-slate-400'}`}
+          <div className="flex gap-3">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Filter size={10}/> Region</label>
+                <select 
+                  className="px-6 py-4 border-2 border-slate-100 rounded-[20px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[160px] shadow-sm cursor-pointer" 
+                  value={selectedMarket} 
+                  onChange={(e) => setSelectedMarket(e.target.value)}
                 >
-                    {rentSortOrder === 'ASC' ? <ArrowUp size={16} /> : rentSortOrder === 'DESC' ? <ArrowDown size={16} /> : <ArrowUpDown size={16} />}
-                </button>
-            </div>
-
-            <button onClick={toggleNameSort} className={`px-4 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 flex items-center gap-2 transition-all ${nameSortOrder !== 'NONE' ? 'text-indigo-600 border-indigo-200 bg-indigo-50 font-bold' : 'text-slate-500'}`}>
-               Name {nameSortOrder === 'ASC' ? <ArrowUp size={14}/> : nameSortOrder === 'DESC' ? <ArrowDown size={14}/> : <ArrowUpDown size={14}/>}
-            </button>
-
-            {!isMarketAdmin && (
-              <>
-                <select className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 outline-none" value={selectedCity} onChange={(e) => { setSelectedCity(e.target.value); setSelectedMarket(''); }}>
-                    <option value="">All Cities</option>
-                    {CITIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    <option value="ALL">All Hubs</option>
+                    {MARKETS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
-                <select className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 outline-none" value={selectedMarket} onChange={(e) => setSelectedMarket(e.target.value)}>
-                    <option value="">All Markets</option>
-                    {MARKETS.filter(m => !selectedCity || m.cityId === selectedCity).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><ShieldCheck size={10}/> Integrity</label>
+                <select 
+                  className="px-6 py-4 border-2 border-slate-100 rounded-[20px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[160px] shadow-sm cursor-pointer" 
+                  value={statusFilter} 
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                    <option value="ALL">All Status</option>
+                    <option value="ACTIVE">Operational</option>
+                    <option value="SUSPENDED">Suspended</option>
                 </select>
-              </>
-            )}
-            <button onClick={() => {setSearchTerm(''); setStatusFilter('ALL'); setRentSortOrder('NONE'); setNameSortOrder('NONE');}} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors" title="Reset Filters">
-              <RefreshCcw size={18} />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><ListFilter size={10}/> Sector</label>
+                <select 
+                  className="px-6 py-4 border-2 border-slate-100 rounded-[20px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[160px] shadow-sm cursor-pointer" 
+                  value={categoryFilter} 
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                >
+                    <option value="ALL">All Sectors</option>
+                    {Object.values(ProductCategory).map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                </select>
+              </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><ArrowUpDown size={10}/> Ordering</label>
+            <button 
+                onClick={toggleNameSort}
+                className={`px-8 py-4 border-2 rounded-[20px] text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${nameSortOrder ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-100' : 'bg-slate-50 border-slate-100 text-slate-500'}`}
+            >
+                Alpha {nameSortOrder === 'ASC' ? <ArrowUp size={14}/> : nameSortOrder === 'DESC' ? <ArrowDown size={14}/> : <ArrowUpDown size={14}/>}
             </button>
           </div>
         </div>
-        
-        {isAdmin && (
-          <Button onClick={() => setShowAddVendorModal(true)} className="w-full xl:w-auto flex items-center justify-center gap-2">
-            <UserPlus size={18} /> Add New Vendor
-          </Button>
-        )}
       </div>
 
-      {/* Vendor Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[10px] tracking-widest border-b border-slate-200">
-            <tr>
-              {isMarketAdmin && (
-                <th className="px-6 py-4 w-10">
-                  <button onClick={toggleSelectAll} className="text-slate-400 hover:text-indigo-600">
-                    {selectedVendorIds.length === filteredVendors.length && filteredVendors.length > 0 ? <CheckSquare size={18}/> : <Square size={18}/>}
-                  </button>
-                </th>
-              )}
-              <th className="px-6 py-4">Vendor Info</th>
-              <th className="px-6 py-4">Shop Node</th>
-              <th className="px-6 py-4">Rent Status</th>
-              <th className="px-6 py-4">Acc. Status</th>
-              <th className="px-6 py-4 text-right">Registry</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredVendors.map(vendor => {
-              const rentStatus = getRentStatus(vendor);
-              return (
-                <tr key={vendor.id} className={`hover:bg-slate-50 cursor-pointer group transition-colors ${selectedVendorIds.includes(vendor.id) ? 'bg-indigo-50/30' : ''}`} onClick={() => setSelectedVendor(vendor)}>
-                  {isMarketAdmin && (
-                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                       <button onClick={() => toggleSelectVendor(vendor.id)} className={`${selectedVendorIds.includes(vendor.id) ? 'text-indigo-600' : 'text-slate-300'} transition-colors`}>
-                          {selectedVendorIds.includes(vendor.id) ? <CheckSquare size={18}/> : <Square size={18}/>}
-                       </button>
-                    </td>
-                  )}
-                  <td className="px-6 py-4">
-                    <div className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{vendor.name}</div>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{vendor.email || vendor.gender + ' • ' + vendor.age + 'y'}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                      <div className="font-mono text-slate-700 font-bold text-xs">{vendor.shopNumber}</div>
-                      <div className="text-[10px] text-slate-400 uppercase font-black mt-0.5">{vendor.section || 'General'}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1.5">
-                        <div className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border w-fit ${rentStatus.color}`}>
-                           {rentStatus.label}
-                        </div>
-                        {vendor.rentDue > 0 && (
-                          <div className="text-[10px] font-black text-slate-900 flex items-center gap-1">
-                            {vendor.rentDue.toLocaleString()} <span className="opacity-40">UGX</span>
-                          </div>
-                        )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${vendor.status === 'ACTIVE' ? 'bg-indigo-50 text-indigo-600' : 'bg-red-50 text-red-600'}`}>
-                      {vendor.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-1">
-                       <button onClick={(e) => { e.stopPropagation(); setQrModalVendor(vendor); }} className="p-2 hover:bg-slate-200 rounded-lg transition-all text-slate-400 hover:text-slate-900" title="Store QR Profile">
-                         <QrCode size={18} />
-                       </button>
-                       <button onClick={(e) => { e.stopPropagation(); setSelectedVendor(vendor); }} className="p-2 hover:bg-slate-200 rounded-lg transition-all text-slate-400 hover:text-indigo-600" title="View Details">
-                         <ArrowUpDown size={18} className="rotate-90" />
-                       </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {filteredVendors.length === 0 && (
+      {/* Table Node */}
+      <div className="bg-white rounded-[48px] border border-slate-200 shadow-2xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-950 text-indigo-400 font-black uppercase text-[11px] tracking-[0.3em] border-b border-slate-900">
               <tr>
-                <td colSpan={isMarketAdmin ? 6 : 5} className="px-6 py-12 text-center text-slate-400 italic font-medium uppercase tracking-[0.2em] text-xs">
-                   No registry nodes triangulated.
-                </td>
+                {isAdmin && (
+                  <th className="px-10 py-8 w-10">
+                    <button onClick={toggleSelectAll} className="text-indigo-400 hover:text-white transition-colors">
+                      {selectedIds.size > 0 && selectedIds.size === filteredAndSortedVendors.length ? <CheckSquare size={22}/> : <Square size={22}/>}
+                    </button>
+                  </th>
+                )}
+                <th className="px-10 py-8">Entity Cluster</th>
+                <th className="px-10 py-8">Registry Unit</th>
+                <th className="px-10 py-8">Fiscal Status</th>
+                <th className="px-10 py-8">Node State</th>
+                <th className="px-10 py-8 text-right">Telemetry</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredAndSortedVendors.map(vendor => {
+                const rentStatus = getRentStatus(vendor);
+                const isSelected = selectedIds.has(vendor.id);
+                return (
+                  <tr key={vendor.id} className={`hover:bg-indigo-50/40 transition-all group cursor-pointer ${isSelected ? 'bg-indigo-50/60' : ''}`} onClick={() => setSelectedVendor(vendor)}>
+                    {isAdmin && (
+                      <td className="px-10 py-8" onClick={(e) => { e.stopPropagation(); toggleSelect(vendor.id); }}>
+                        <button className={`transition-colors ${isSelected ? 'text-indigo-600' : 'text-slate-200 group-hover:text-indigo-300'}`}>
+                           {isSelected ? <CheckSquare size={22}/> : <Square size={22}/>}
+                        </button>
+                      </td>
+                    )}
+                    <td className="px-10 py-8">
+                      <div className="font-black text-slate-950 group-hover:text-indigo-600 transition-colors uppercase tracking-tight text-base leading-none">{vendor.name}</div>
+                      <div className="text-[10px] text-slate-400 font-bold mt-1.5 tracking-widest flex items-center gap-2">
+                        <span className="bg-slate-100 px-1.5 py-0.5 rounded uppercase">{vendor.storeType || 'GENERAL'}</span>
+                        • {vendor.email}
+                      </div>
+                    </td>
+                    <td className="px-10 py-8">
+                        <div className="font-mono text-xs font-black text-slate-800 tracking-[0.2em]">#{vendor.shopNumber}</div>
+                        <div className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1.5">{vendor.section || 'N/A REGION'}</div>
+                    </td>
+                    <td className="px-10 py-8">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2.5 h-2.5 rounded-full ${rentStatus.color} ${rentStatus.label !== 'PAID' ? 'animate-pulse' : ''}`}></div>
+                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border-2 ${rentStatus.bg} ${rentStatus.text} ${rentStatus.border}`}>
+                          {rentStatus.label}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-10 py-8">
+                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border-2 ${vendor.status === 'ACTIVE' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
+                        {vendor.status === 'ACTIVE' ? 'OPERATIONAL' : 'OFFLINE'}
+                      </span>
+                    </td>
+                    <td className="px-10 py-8 text-right">
+                      <div className="flex justify-end gap-3">
+                         <button 
+                            onClick={(e) => { e.stopPropagation(); setQrModalVendor(vendor); }} 
+                            className="p-4 bg-slate-50 hover:bg-slate-950 hover:text-white rounded-[18px] transition-all shadow-sm border border-slate-100"
+                            title="Generate Profile QR"
+                         >
+                           <QrCode size={20} />
+                         </button>
+                         <button className="p-4 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-[18px] transition-all shadow-sm border border-slate-100">
+                           <ArrowUpDown size={20} className="rotate-90" />
+                         </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredAndSortedVendors.length === 0 && (
+                  <tr>
+                      <td colSpan={isAdmin ? 6 : 5} className="px-10 py-32 text-center text-slate-400">
+                         <div className="flex flex-col items-center gap-4">
+                            <div className="p-8 bg-slate-50 rounded-[40px] text-slate-200">
+                                <Search size={64} />
+                            </div>
+                            <p className="font-black uppercase tracking-[0.2em] text-xs text-slate-900">Zero Nodes Triangulated</p>
+                            <p className="text-sm">No vendors found matching the current registry filters.</p>
+                         </div>
+                      </td>
+                  </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* QR Store Profile Modal */}
       {qrModalVendor && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-[32px] shadow-2xl max-w-sm w-full p-8 text-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
-            <button onClick={() => setQrModalVendor(null)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><X size={24}/></button>
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[200] flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-[64px] shadow-[0_50px_100px_rgba(0,0,0,0.5)] max-w-sm w-full p-12 text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-4 bg-indigo-600"></div>
+            <button onClick={() => setQrModalVendor(null)} className="absolute top-8 right-8 text-slate-300 hover:text-slate-900 transition-all hover:rotate-90"><X size={32}/></button>
             
-            <div className="mb-6">
-              <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Store size={40} />
+            <div className="mb-10">
+              <div className="w-24 h-24 bg-indigo-50 text-indigo-600 rounded-[32px] flex items-center justify-center mx-auto mb-6 shadow-2xl ring-8 ring-white">
+                <Store size={48} />
               </div>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Store Passport</h3>
-              <p className="text-slate-500 text-sm font-medium">Digital identity for regional trade.</p>
+              <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-2">Entity Profile</h3>
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Registry ID: {qrModalVendor.id}</p>
             </div>
 
-            <div className="bg-slate-900 p-6 rounded-[32px] shadow-2xl mb-8 border-4 border-slate-800">
-               <div className="bg-white p-4 rounded-2xl shadow-inner flex items-center justify-center">
+            <div className="bg-slate-950 p-10 rounded-[48px] shadow-2xl mb-12 border-4 border-slate-900 flex flex-col items-center justify-center group">
+               <div className="bg-white p-6 rounded-3xl shadow-inner transition-transform group-hover:scale-105 duration-500">
                   <QrCode size={180} className="text-slate-900" />
                </div>
-               <div className="mt-4 text-white font-mono text-sm tracking-widest uppercase opacity-80">
-                  {qrModalVendor.id}-{qrModalVendor.shopNumber}
-               </div>
+               <p className="text-white mt-6 font-mono font-black tracking-[0.3em] text-sm opacity-60">VAL-MMIS-{qrModalVendor.id.toUpperCase()}</p>
             </div>
 
-            <div className="space-y-4 mb-8">
-              <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest px-4">
-                 <span className="text-slate-400">Vendor:</span>
-                 <span className="text-slate-900 font-black">{qrModalVendor.name}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest px-4">
-                 <span className="text-slate-400">Location:</span>
-                 <span className="text-slate-900 font-black">{getMarketName(qrModalVendor.marketId)}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest px-4">
-                 <span className="text-slate-400">Shop ID:</span>
-                 <span className="text-indigo-600 font-black">{qrModalVendor.shopNumber}</span>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-               <Button variant="secondary" className="flex-1 font-black uppercase text-[10px] tracking-widest"><Printer size={16} /> Print</Button>
-               <Button className="flex-1 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-100"><Download size={16} /> Export</Button>
+            <div className="grid grid-cols-2 gap-4">
+               <Button variant="secondary" className="h-16 rounded-[20px] font-black uppercase text-[10px] tracking-widest border-2"><Printer size={18} className="mr-2"/> Label Tag</Button>
+               <Button className="h-16 rounded-[20px] font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-indigo-200 bg-indigo-600 border-none"><Download size={18} className="mr-2"/> Digital Key</Button>
             </div>
           </div>
         </div>
