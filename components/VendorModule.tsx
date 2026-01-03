@@ -6,7 +6,7 @@ import {
   Search, QrCode, UserPlus, Store, ArrowUpDown, ArrowUp, ArrowDown, 
   ShieldCheck, Play, Ban, X, Download, Printer, Filter, 
   CheckSquare, Square, DollarSign, ListFilter, MoreVertical,
-  Building2, MapPin, CheckCircle2, AlertCircle
+  Building2, MapPin, CheckCircle2, AlertCircle, Calendar, Clock
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { VendorDetailsModal } from './VendorDetailsModal';
@@ -23,12 +23,17 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
   marketId 
 }) => {
   const [vendors, setVendors] = useState<Vendor[]>(MOCK_VENDORS);
-  const [selectedMarket, setSelectedMarket] = useState(marketId || 'ALL');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
   
-  // Selection & Modal State
+  // Selection State for Bulk Actions
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  
+  // Toolbar Filters & Sort
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedMarket, setSelectedMarket] = useState(marketId || 'ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [rentSortOrder, setRentSortOrder] = useState<'LOW_HIGH' | 'HIGH_LOW' | 'NONE'>('NONE');
+  
+  // Modals
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [qrModalVendor, setQrModalVendor] = useState<Vendor | null>(null);
   
@@ -39,28 +44,59 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
   // Helper to calculate status visual metadata
   const getRentStatus = (vendor: Vendor) => {
     if (vendor.rentDue <= 0) {
-      return { label: 'PAID', color: 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]', text: 'text-emerald-700', bg: 'bg-emerald-50' };
+      return { 
+        label: 'PAID', 
+        color: 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]', 
+        text: 'text-emerald-700', 
+        bg: 'bg-emerald-50', 
+        border: 'border-emerald-100' 
+      };
     }
     
     const dueDate = vendor.rentDueDate ? new Date(vendor.rentDueDate) : null;
     const isOverdue = dueDate && dueDate < new Date();
     
     if (isOverdue) {
-      return { label: 'OVERDUE', color: 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.6)] animate-pulse', text: 'text-rose-700', bg: 'bg-rose-50' };
+      return { 
+        label: 'OVERDUE', 
+        color: 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.6)] animate-pulse', 
+        text: 'text-rose-700', 
+        bg: 'bg-rose-50', 
+        border: 'border-rose-100' 
+      };
     }
     
-    return { label: 'PENDING', color: 'bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.6)]', text: 'text-amber-700', bg: 'bg-amber-50' };
+    return { 
+      label: 'PENDING', 
+      color: 'bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.6)]', 
+      text: 'text-amber-700', 
+      bg: 'bg-amber-50', 
+      border: 'border-amber-100' 
+    };
   };
 
-  const filteredVendors = useMemo(() => {
-    return vendors.filter(v => {
-      const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase()) || v.shopNumber.toLowerCase().includes(searchTerm.toLowerCase());
+  // Complex Filtering & Sorting logic
+  const filteredAndSortedVendors = useMemo(() => {
+    let result = vendors.filter(v => {
+      const term = searchTerm.toLowerCase();
+      const matchesSearch = v.name.toLowerCase().includes(term) || v.shopNumber.toLowerCase().includes(term);
       const matchesStatus = statusFilter === 'ALL' || v.status === statusFilter;
       const matchesMarket = selectedMarket === 'ALL' || v.marketId === selectedMarket;
+      
       return matchesSearch && matchesStatus && matchesMarket;
     });
-  }, [vendors, searchTerm, statusFilter, selectedMarket]);
 
+    // Sort by Rent Due Magnitude
+    if (rentSortOrder === 'LOW_HIGH') {
+      result = [...result].sort((a, b) => a.rentDue - b.rentDue);
+    } else if (rentSortOrder === 'HIGH_LOW') {
+      result = [...result].sort((a, b) => b.rentDue - a.rentDue);
+    }
+
+    return result;
+  }, [vendors, searchTerm, statusFilter, selectedMarket, rentSortOrder]);
+
+  // Handler: Individual Selection
   const toggleSelect = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const next = new Set(selectedIds);
@@ -69,9 +105,30 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
     setSelectedIds(next);
   };
 
+  // Handler: Select All
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredAndSortedVendors.length && filteredAndSortedVendors.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredAndSortedVendors.map(v => v.id)));
+    }
+  };
+
+  // Handler: Bulk Status Updates
+  const handleBulkAction = (action: 'ACTIVATE' | 'SUSPEND') => {
+    if (selectedIds.size === 0) return;
+    const nextStatus = action === 'ACTIVATE' ? 'ACTIVE' : 'SUSPENDED';
+    
+    setVendors(prev => prev.map(v => 
+      selectedIds.has(v.id) ? { ...v, status: nextStatus as any } : v
+    ));
+    setSelectedIds(new Set());
+    alert(`Bulk Registry Sync: ${selectedIds.size} entities transitioned to ${nextStatus}.`);
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in pb-24">
-      {/* Header Block */}
+      {/* Module Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-6 border-b border-slate-200">
         <div className="flex items-center gap-6">
            <div className="w-20 h-20 bg-slate-950 text-white rounded-[32px] flex items-center justify-center shadow-2xl ring-4 ring-indigo-50">
@@ -81,23 +138,42 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
               <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">Vendor Ledger</h2>
               <div className="flex items-center gap-3 mt-3">
                  <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-100 flex items-center gap-2">
-                    <ShieldCheck size={12}/> {isSuperAdmin ? 'Global Registry' : `Hub: ${marketId || 'm1'}`}
+                    <ShieldCheck size={12}/> {isSuperAdmin ? 'Global Registry' : `Market Terminal: ${marketId || 'N/A'}`}
                  </span>
-                 <p className="text-slate-400 font-bold text-sm tracking-tight">Entity Monitor v2.1</p>
+                 <p className="text-slate-400 font-bold text-sm tracking-tight">Real-time Entity Telemetry</p>
               </div>
            </div>
         </div>
         
-        {isAdmin && (
-          <Button className="h-14 px-10 font-black uppercase text-[11px] tracking-[0.2em] bg-indigo-600 hover:bg-indigo-700 shadow-2xl shadow-indigo-100 rounded-2xl">
-            <UserPlus size={20} className="mr-3"/> Register Entity
-          </Button>
-        )}
+        <div className="flex items-center gap-3">
+          {isAdmin && selectedIds.size > 0 && (
+            <div className="flex gap-2 animate-in slide-in-from-right-4">
+               <button 
+                  onClick={() => handleBulkAction('ACTIVATE')} 
+                  className="flex items-center gap-3 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95"
+               >
+                  <Play size={16}/> Activate All ({selectedIds.size})
+               </button>
+               <button 
+                  onClick={() => handleBulkAction('SUSPEND')} 
+                  className="flex items-center gap-3 bg-slate-950 hover:bg-black text-white px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95"
+               >
+                  <Ban size={16}/> Suspend All ({selectedIds.size})
+               </button>
+            </div>
+          )}
+          {isAdmin && (
+            <Button className="h-14 px-10 font-black uppercase text-[11px] tracking-[0.2em] bg-indigo-600 hover:bg-indigo-700 shadow-2xl shadow-indigo-100 rounded-2xl">
+              <UserPlus size={20} className="mr-3"/> Register Entity
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Control Block */}
+      {/* Advanced Control Block - Redesigned with required filters */}
       <div className="bg-white p-8 rounded-[48px] border border-slate-200 shadow-xl space-y-8">
         <div className="flex flex-wrap gap-6 items-end">
+          {/* Search */}
           <div className="relative flex-1 min-w-[320px]">
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={24} />
             <input 
@@ -109,30 +185,55 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
             />
           </div>
           
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
+              {/* Market Filter - Dropdown populated from constants */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Building2 size={10}/> Market Hub</label>
-                <select 
-                  className="px-6 py-4 border-2 border-slate-100 rounded-[22px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[200px] shadow-sm cursor-pointer hover:bg-white transition-all" 
-                  value={selectedMarket} 
-                  onChange={(e) => setSelectedMarket(e.target.value)}
-                >
-                    <option value="ALL">All regional hubs</option>
-                    {MARKETS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                </select>
+                <div className="relative">
+                  <select 
+                    className="px-6 py-4 border-2 border-slate-100 rounded-[22px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[200px] shadow-sm cursor-pointer hover:bg-white transition-all pr-12" 
+                    value={selectedMarket} 
+                    onChange={(e) => setSelectedMarket(e.target.value)}
+                  >
+                      <option value="ALL">All regional hubs</option>
+                      {MARKETS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                  <Filter className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                </div>
               </div>
 
+              {/* Integrity/Status Filter */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Filter size={10}/> Registry State</label>
-                <select 
-                  className="px-6 py-4 border-2 border-slate-100 rounded-[22px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[150px] shadow-sm cursor-pointer hover:bg-white transition-all" 
-                  value={statusFilter} 
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                    <option value="ALL">All States</option>
-                    <option value="ACTIVE">Operational</option>
-                    <option value="SUSPENDED">Suspended</option>
-                </select>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><ShieldCheck size={10}/> Integrity Node</label>
+                <div className="relative">
+                  <select 
+                    className="px-6 py-4 border-2 border-slate-100 rounded-[22px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[150px] shadow-sm cursor-pointer hover:bg-white transition-all pr-12" 
+                    value={statusFilter} 
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                      <option value="ALL">All States</option>
+                      <option value="ACTIVE">Operational</option>
+                      <option value="SUSPENDED">Suspended</option>
+                  </select>
+                  <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Rent Due Sort - Low to High / High to Low */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><DollarSign size={10}/> Rent Arrears</label>
+                <div className="relative">
+                  <select 
+                    className="px-6 py-4 border-2 border-slate-100 rounded-[22px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[180px] shadow-sm cursor-pointer hover:bg-white transition-all pr-12" 
+                    value={rentSortOrder} 
+                    onChange={(e) => setRentSortOrder(e.target.value as any)}
+                  >
+                      <option value="NONE">Sort by Amount</option>
+                      <option value="LOW_HIGH">Low to High</option>
+                      <option value="HIGH_LOW">High to Low</option>
+                  </select>
+                  <ArrowUpDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
               </div>
           </div>
         </div>
@@ -144,9 +245,13 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
           <table className="w-full text-sm text-left">
             <thead className="bg-slate-950 text-indigo-400 font-black uppercase text-[11px] tracking-[0.4em] border-b border-slate-900">
               <tr>
-                <th className="px-10 py-10 w-10">
-                  <button className="text-indigo-400 hover:text-white transition-colors"><Square size={24}/></button>
-                </th>
+                {isAdmin && (
+                  <th className="px-10 py-10 w-10">
+                    <button onClick={toggleSelectAll} className="text-indigo-400 hover:text-white transition-colors">
+                      {selectedIds.size > 0 && selectedIds.size === filteredAndSortedVendors.length ? <CheckSquare size={24}/> : <Square size={24}/>}
+                    </button>
+                  </th>
+                )}
                 <th className="px-10 py-10">Entity Node</th>
                 <th className="px-10 py-10">Unit Allocation</th>
                 <th className="px-10 py-10">Fiscal Status</th>
@@ -154,16 +259,18 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredVendors.map(vendor => {
+              {filteredAndSortedVendors.map(vendor => {
                 const rentStatus = getRentStatus(vendor);
                 const isSelected = selectedIds.has(vendor.id);
                 return (
                   <tr key={vendor.id} className={`hover:bg-indigo-50/40 transition-all group cursor-pointer border-l-4 border-l-transparent hover:border-l-indigo-600 ${isSelected ? 'bg-indigo-50/60 border-l-indigo-600' : ''}`} onClick={() => setSelectedVendor(vendor)}>
-                    <td className="px-10 py-8" onClick={(e) => toggleSelect(vendor.id, e)}>
-                       <button className={`transition-colors ${isSelected ? 'text-indigo-600' : 'text-slate-200 group-hover:text-indigo-300'}`}>
-                          {isSelected ? <CheckSquare size={24}/> : <Square size={24}/>}
-                       </button>
-                    </td>
+                    {isAdmin && (
+                      <td className="px-10 py-8" onClick={(e) => toggleSelect(vendor.id, e)}>
+                        <button className={`transition-colors ${isSelected ? 'text-indigo-600' : 'text-slate-200 group-hover:text-indigo-300'}`}>
+                           {isSelected ? <CheckSquare size={24}/> : <Square size={24}/>}
+                        </button>
+                      </td>
+                    )}
                     <td className="px-10 py-8">
                       <div className="font-black text-slate-950 group-hover:text-indigo-600 transition-colors uppercase tracking-tight text-base leading-none">{vendor.name}</div>
                       <div className="text-[10px] text-slate-400 font-bold mt-2 tracking-widest">REG-ENTITY-{vendor.id.toUpperCase()}</div>
@@ -171,30 +278,32 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
                     <td className="px-10 py-8">
                         <div className="font-mono text-xs font-black text-slate-800 tracking-[0.2em] group-hover:text-indigo-600 transition-colors">#{vendor.shopNumber}</div>
                         <div className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-2 flex items-center gap-1.5">
-                           <MapPin size={10}/> {vendor.section || 'General Sector'}
+                           <MapPin size={10}/> {MARKETS.find(m => m.id === vendor.marketId)?.name || 'General Hub'}
                         </div>
                     </td>
                     <td className="px-10 py-8">
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-3">
                           <div className={`w-3 h-3 rounded-full ${rentStatus.color}`}></div>
-                          <span className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border-2 transition-all group-hover:scale-105 ${rentStatus.bg} ${rentStatus.text} border-${rentStatus.text.split('-')[1]}-100`}>
+                          <span className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border-2 transition-all group-hover:scale-105 ${rentStatus.bg} ${rentStatus.text} ${rentStatus.border}`}>
                             {rentStatus.label}
                           </span>
                         </div>
-                        <span className="text-[11px] font-black text-slate-400 ml-1 tracking-tighter">Due: {vendor.rentDueDate || 'N/A'}</span>
+                        {vendor.rentDue > 0 && (
+                          <span className="text-[11px] font-black text-slate-400 ml-1 tracking-tighter">UGX {vendor.rentDue.toLocaleString()} Arrears</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-10 py-8 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-3">
                          <button 
                             onClick={() => setQrModalVendor(vendor)} 
-                            className="p-4 bg-slate-50 hover:bg-slate-950 hover:text-white rounded-[22px] transition-all shadow-sm border border-slate-100 group/qr"
+                            className="p-4 bg-slate-50 hover:bg-slate-950 hover:text-white rounded-[22px] transition-all shadow-sm border border-slate-100 group/qr active:scale-90"
                             title="Generate Store Profile QR"
                          >
                            <QrCode size={20} className="group-hover/qr:scale-110 transition-transform" />
                          </button>
-                         <button className="p-4 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-[22px] transition-all shadow-sm border border-slate-100" title="More Options">
+                         <button className="p-4 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-[22px] transition-all shadow-sm border border-slate-100 active:scale-90" title="More Options">
                            <MoreVertical size={20} />
                          </button>
                       </div>
@@ -202,6 +311,14 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
                   </tr>
                 );
               })}
+              {filteredAndSortedVendors.length === 0 && (
+                  <tr>
+                      <td colSpan={isAdmin ? 5 : 4} className="px-10 py-32 text-center text-slate-400">
+                         <Search size={48} className="mx-auto mb-4 opacity-10" />
+                         <p className="font-black uppercase text-xs tracking-widest">No commercial nodes triangulated.</p>
+                      </td>
+                  </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -234,8 +351,8 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-               <Button variant="secondary" className="h-20 rounded-3xl font-black uppercase text-[10px] tracking-widest border-4 border-slate-50 shadow-sm transition-all hover:bg-slate-50"><Printer size={22} className="mr-3 text-indigo-500"/> Thermal</Button>
-               <Button className="h-20 rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-[0_20px_40px_rgba(79,70,229,0.3)] bg-indigo-600 border-none transition-all hover:-translate-y-1"><Download size={22} className="mr-3"/> Digital Key</Button>
+               <Button variant="secondary" className="h-20 rounded-3xl font-black uppercase text-[10px] tracking-widest border-4 border-slate-50 shadow-sm transition-all hover:bg-slate-50 active:scale-95"><Printer size={22} className="mr-3 text-indigo-500"/> Thermal</Button>
+               <Button className="h-20 rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-[0_20px_40px_rgba(79,70,229,0.3)] bg-indigo-600 border-none transition-all hover:-translate-y-1 active:scale-95"><Download size={22} className="mr-3"/> Digital Key</Button>
             </div>
           </div>
         </div>
@@ -252,3 +369,8 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
     </div>
   );
 };
+
+// Internal icon component for cleaner code
+const ChevronDown = ({ size, className }: { size: number, className: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m6 9 6 6 6-6"/></svg>
+);
