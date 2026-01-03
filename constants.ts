@@ -79,20 +79,24 @@ export const MOCK_PRODUCTS: Product[] = [
 
 export const MOCK_TRANSACTIONS: Transaction[] = [
   // History for Alice (v1) - Paid
-  { id: 'tx-v1-1', entityId: 'v1', date: '2024-05-01', amount: 500000, type: PaymentType.RENT, status: 'PAID', method: 'MTN_MOMO', reference: 'RENT-MAY-V1', description: 'Monthly Shop Rent' },
-  { id: 'tx-v1-2', entityId: 'v1', date: '2024-05-01', amount: 90000, type: PaymentType.URA_VAT, status: 'PAID', method: 'MTN_MOMO', reference: 'VAT-MAY-V1', description: 'URA VAT Compliance' },
-  { id: 'tx-v1-3', entityId: 'v1', date: '2024-04-02', amount: 500000, type: PaymentType.RENT, status: 'PAID', method: 'BANK', reference: 'RENT-APR-V1' },
+  { id: 'tx-v1-1', entityId: 'v1', marketId: 'm1', date: '2024-05-01', amount: 500000, type: PaymentType.RENT, status: 'PAID', method: 'MTN_MOMO', reference: 'RENT-MAY-V1', description: 'Monthly Shop Rent' },
+  { id: 'tx-v1-2', entityId: 'v1', marketId: 'm1', date: '2024-05-01', amount: 90000, type: PaymentType.URA_VAT, status: 'PAID', method: 'MTN_MOMO', reference: 'VAT-MAY-V1', description: 'URA VAT Compliance' },
+  { id: 'tx-v1-3', entityId: 'v1', marketId: 'm1', date: '2024-04-02', amount: 500000, type: PaymentType.RENT, status: 'PAID', method: 'BANK', reference: 'RENT-APR-V1' },
   
   // History for John (v2) - Pending/Overdue
-  { id: 'tx-v2-1', entityId: 'v2', date: '2024-05-15', amount: 750000, type: PaymentType.RENT, status: 'OVERDUE', method: 'CASH', reference: 'RENT-MAY-V2' },
-  { id: 'tx-v2-2', entityId: 'v2', date: '2024-05-15', amount: 135000, type: PaymentType.URA_VAT, status: 'PENDING', method: 'AIRTEL_MONEY', reference: 'VAT-MAY-V2' },
+  { id: 'tx-v2-1', entityId: 'v2', marketId: 'm1', date: '2024-05-15', amount: 750000, type: PaymentType.RENT, status: 'OVERDUE', method: 'CASH', reference: 'RENT-MAY-V2' },
+  { id: 'tx-v2-2', entityId: 'v2', marketId: 'm1', date: '2024-05-15', amount: 135000, type: PaymentType.URA_VAT, status: 'PENDING', method: 'AIRTEL_MONEY', reference: 'VAT-MAY-V2' },
   
   // History for Sarah (v3) - Pending
-  { id: 'tx-v3-1', entityId: 'v3', date: '2024-05-20', amount: 150000, type: PaymentType.RENT, status: 'PENDING', method: 'AIRTEL_MONEY', reference: 'RENT-MAY-V3' },
+  { id: 'tx-v3-1', entityId: 'v3', marketId: 'm2', date: '2024-05-20', amount: 150000, type: PaymentType.RENT, status: 'PENDING', method: 'AIRTEL_MONEY', reference: 'RENT-MAY-V3' },
   
   // System/Gate Transactions
-  { id: 'tx-g1', entityId: 'gate-01', date: '2024-05-18', amount: 15000, type: PaymentType.GATE_FEE, status: 'PAID', method: 'CASH', reference: 'GATE-ENTRY-001' },
-  { id: 'tx-g2', entityId: 'gate-01', date: '2024-05-18', amount: 2000, type: PaymentType.GATE_FEE, status: 'PAID', method: 'MTN_MOMO', reference: 'GATE-ENTRY-002' },
+  { id: 'tx-g1', entityId: 'gate-01', marketId: 'm1', date: '2024-05-18', amount: 15000, type: PaymentType.GATE_FEE, status: 'PAID', method: 'CASH', reference: 'GATE-ENTRY-001' },
+  { id: 'tx-g2', entityId: 'gate-01', marketId: 'm1', date: '2024-05-18', amount: 2000, type: PaymentType.GATE_FEE, status: 'PAID', method: 'MTN_MOMO', reference: 'GATE-ENTRY-002' },
+  
+  // Supplier Transactions
+  { id: 'tx-s1', entityId: 's1', marketId: 'm1', date: '2024-05-19', amount: 2500000, type: PaymentType.SUPPLY_ESCROW, status: 'ESCROW', method: 'BANK', reference: 'SUPPLY-REQ-99' },
+  { id: 'tx-s2', entityId: 's1', marketId: 'm1', date: '2024-05-10', amount: 50000, type: PaymentType.SERVICE_CHARGE, status: 'PAID', method: 'MTN_MOMO', reference: 'SVC-CHG-101' },
 ];
 
 export const MOCK_BIDS: Bid[] = [
@@ -132,7 +136,7 @@ export const MOCK_POWER = [
 export const DUMMY_CREDENTIALS = [
   { label: 'Super Admin', email: 'super@mmis.tevas.ug', password: '123', role: UserRole.SUPER_ADMIN },
   { label: 'Market Admin', email: 'admin@mmis.tevas.ug', password: '123', role: UserRole.MARKET_ADMIN, marketId: 'm1' },
-  { label: 'Vendor Node', email: 'vendor@shop.com', password: '123', role: UserRole.VENDOR, marketId: 'm1' },
-  { label: 'Supplier Node', email: 'supplier@agro.com', password: '123', role: UserRole.SUPPLIER },
+  { label: 'Vendor Node', email: 'vendor@shop.com', password: '123', role: UserRole.VENDOR, id: 'v1', marketId: 'm1' },
+  { label: 'Supplier Node', email: 'supplier@agro.com', password: '123', role: UserRole.SUPPLIER, id: 's1' },
   { label: 'Gate Security', email: 'gate@mmis.tevas.ug', password: '123', role: UserRole.GATE_STAFF, marketId: 'm1' },
 ];

@@ -127,6 +127,7 @@ export interface Product {
 export interface Transaction {
   id: string;
   entityId: string;
+  marketId: string; // Added for administrative scoping
   date: string;
   amount: number;
   taxAmount?: number;
