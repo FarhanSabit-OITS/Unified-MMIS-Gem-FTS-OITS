@@ -1,3 +1,4 @@
+
 import { City, Market, Supplier, Ticket, TicketContext, TicketPriority, Vendor, UserRole, Product, GateToken, ParkingSlot, Requisition, Bid, AssetCCTV, PowerZone, StaffMember, Transaction } from "./types";
 
 export const CITIES: City[] = [
@@ -15,9 +16,9 @@ export const MARKETS: Market[] = [
 ];
 
 export const MOCK_VENDORS: Vendor[] = [
-  { id: 'v1', name: 'Alice Namatovu', shopNumber: 'A-101', marketId: 'm1', status: 'ACTIVE', rentDue: 0, gender: 'FEMALE', age: 34, productsCount: 120, kycVerified: true, notes: 'Reliable tenant. Often requests early delivery of stock.', email: 'alice.n@example.com', phone: '+256 772 123 456' },
-  { id: 'v2', name: 'John Okello', shopNumber: 'B-005', marketId: 'm1', status: 'SUSPENDED', rentDue: 500000, gender: 'MALE', age: 45, productsCount: 50, kycVerified: true, notes: 'Pending audit for last month due to missed VAT payment.', email: 'john.ok@example.com', phone: '+256 701 987 654' },
-  { id: 'v3', name: 'Sarah Akello', shopNumber: 'C-202', marketId: 'm2', status: 'ACTIVE', rentDue: 150000, gender: 'FEMALE', age: 28, productsCount: 300, kycVerified: false, notes: 'New vendor application in progress for second shop.', email: 'sarah.ak@example.com', phone: '+256 753 555 444' },
+  { id: 'v1', name: 'Alice Namatovu', shopNumber: 'A-101', marketId: 'm1', status: 'ACTIVE', rentDue: 0, rentDueDate: '2024-06-01', gender: 'FEMALE', age: 34, productsCount: 120, kycVerified: true, notes: 'Reliable tenant. Often requests early delivery of stock.', email: 'alice.n@example.com', phone: '+256 772 123 456' },
+  { id: 'v2', name: 'John Okello', shopNumber: 'B-005', marketId: 'm1', status: 'SUSPENDED', rentDue: 500000, rentDueDate: '2024-05-15', gender: 'MALE', age: 45, productsCount: 50, kycVerified: true, notes: 'Pending audit for last month due to missed VAT payment.', email: 'john.ok@example.com', phone: '+256 701 987 654' },
+  { id: 'v3', name: 'Sarah Akello', shopNumber: 'C-202', marketId: 'm2', status: 'ACTIVE', rentDue: 150000, rentDueDate: '2024-05-20', gender: 'FEMALE', age: 28, productsCount: 300, kycVerified: false, notes: 'New vendor application in progress for second shop.', email: 'sarah.ak@example.com', phone: '+256 753 555 444' },
 ];
 
 export const MOCK_SUPPLIERS: Supplier[] = [
@@ -133,9 +134,19 @@ export const MOCK_BIDS: Bid[] = [
     supplierId: 's2',
     supplierName: 'Tech Supplies East',
     amount: 1200000,
-    deliveryDate: '2023-10-29',
-    status: 'PENDING',
+    deliveryDate: '2024-05-20',
+    status: 'ACCEPTED', // Changed to accepted for logistics flow testing
     aiTrustScore: 88
+  },
+  {
+    id: 'b2',
+    requisitionId: 'req2',
+    supplierId: 's1',
+    supplierName: 'AgroConnect Ug Ltd',
+    amount: 800000,
+    deliveryDate: '2024-05-22',
+    status: 'PENDING',
+    aiTrustScore: 92
   }
 ];
 

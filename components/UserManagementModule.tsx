@@ -55,10 +55,9 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ curr
       name: 'New User',
       email: `new.${Date.now()}@mmis.ug`,
       role: role as UserRole,
-      marketId: isSuperAdmin ? null : (currentUser.marketId ?? null), // Use nullish coalescing to ensure null instead of undefined
+      marketId: isSuperAdmin ? null : currentUser.marketId, // Inherit market if not super admin
       status: 'ACTIVE'
     };
-
     setUsers([...users, newUser]);
   };
 
@@ -78,7 +77,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({ curr
         <div>
           <h2 className="text-2xl font-bold text-slate-900">User Management</h2>
           <p className="text-slate-500 text-sm">
-            {isSuperAdmin ? 'System-wide access control.' : `Manage users for ${getMarketName(currentUser.marketId ?? null)}`}
+            {isSuperAdmin ? 'System-wide access control.' : `Manage users for ${getMarketName(currentUser.marketId)}`}
           </p>
         </div>
         <button 

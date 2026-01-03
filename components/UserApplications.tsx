@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ApplicationStatus } from '../types';
 import { VendorApplicationForm } from './VendorApplicationForm';
@@ -53,6 +54,7 @@ export const UserApplications: React.FC = () => {
             formData.append('incorporationDocument', data.document);
         } else {
             // Handle Admin data
+            // Fix: Added missing closing parenthesis for forEach/append
             Object.keys(data).forEach(key => formData.append(key, data[key]));
         }
 

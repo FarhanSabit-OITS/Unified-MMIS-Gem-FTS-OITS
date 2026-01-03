@@ -1,3 +1,4 @@
+
 export enum UserRole {
   SUPER_ADMIN = 'SUPER_ADMIN',
   MARKET_ADMIN = 'MARKET_ADMIN',
@@ -79,6 +80,7 @@ export interface Vendor {
   marketId: string;
   status: 'ACTIVE' | 'SUSPENDED';
   rentDue: number;
+  rentDueDate?: string; // Added for rent management
   vatDue?: number;
   gender: 'MALE' | 'FEMALE';
   age: number;
