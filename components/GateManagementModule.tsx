@@ -79,7 +79,7 @@ export const GateManagementModule: React.FC = () => {
            <div className="max-w-3xl mx-auto space-y-8 animate-in slide-in-from-bottom-6">
                 <Card className="p-12 rounded-[56px] bg-white shadow-2xl border-none text-center relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-12 opacity-[0.03] rotate-12 scale-150"><QrCode size={300}/></div>
-                    <h3 className="text-3xl font-black text-slate-950 uppercase tracking-tighter mb-4">Registry Verification</h3>
+                    <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-4">Registry Verification</h3>
                     <p className="text-slate-500 mb-10 font-medium">Scan Vendor store profile to verify Registry Node integrity and Fiscal Health.</p>
                     
                     <div className="flex gap-4 mb-10">
