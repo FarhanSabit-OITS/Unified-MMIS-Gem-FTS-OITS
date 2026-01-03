@@ -1,16 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { Vendor, UserRole, Transaction } from '../types';
+import { Vendor, UserRole, ProductCategory } from '../types';
 import { MOCK_VENDORS, CITIES, MARKETS } from '../constants';
 import { ApiService } from '../services/api';
-import { PaymentGateway } from './PaymentGateway';
 import { VendorKYCForm } from './VendorKYCForm';
 import { VendorDetailsModal } from './VendorDetailsModal';
 import { 
-  Search, QrCode, Ban, CheckCircle, Gavel, Power, CreditCard, Download, X,
-  FileText, Save, AlertTriangle, UserPlus, Building2, Loader2,
-  Layers, DollarSign, ShieldAlert, Mail, MapPin, Tag, Phone, Printer, RefreshCcw,
-  Store, ArrowUpDown, ArrowUp, ArrowDown, Calendar, ShieldCheck
+  Search, QrCode, CheckCircle, Save, AlertTriangle, UserPlus, Loader2,
+  RefreshCcw, Store, ArrowUpDown, ArrowUp, ArrowDown, Calendar, ShieldCheck,
+  CheckSquare, Square, Play, Ban, X, Download, FileText, Printer
 } from 'lucide-react';
 import { Button } from './ui/Button';
 
@@ -24,13 +22,17 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
   const [vendors, setVendors] = useState<Vendor[]>(MOCK_VENDORS);
   const [isLoading, setIsLoading] = useState(false);
   
+  // Selection State
+  const [selectedVendorIds, setSelectedVendorIds] = useState<string[]>([]);
+  
   // Toolbar Filters
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCity, setSelectedCity] = useState('c1'); // Kampala
-  const [selectedMarket, setSelectedMarket] = useState('m1'); // Nakasero Market
+  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedMarket, setSelectedMarket] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [rentDueFilter, setRentDueFilter] = useState('ALL');
   const [rentSortOrder, setRentSortOrder] = useState<'NONE' | 'ASC' | 'DESC'>('NONE');
+  const [nameSortOrder, setNameSortOrder] = useState<'NONE' | 'ASC' | 'DESC'>('NONE');
   
   // Modals
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
@@ -45,13 +47,21 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
     name: '', shopNumber: '', marketId: marketId || '', email: '', phone: '',
     rentDue: 0, rentDueDate: '', vatDue: 0, status: 'ACTIVE' as 'ACTIVE' | 'SUSPENDED',
     kycVerified: false, gender: 'MALE' as 'MALE' | 'FEMALE', age: 30,
-    cityId: '', level: '', section: '', storeType: 'Retail', ownershipType: 'Sole Proprietorship'
+    cityId: '', level: '', section: '', storeType: ProductCategory.GENERAL, ownershipType: 'Sole Proprietorship'
   });
 
   const isAdmin = userRole === UserRole.SUPER_ADMIN || userRole === UserRole.MARKET_ADMIN;
   const isMarketAdmin = userRole === UserRole.MARKET_ADMIN;
 
   const getMarketName = (id: string) => MARKETS.find(m => m.id === id)?.name || id;
+
+  const getRentStatus = (vendor: Vendor) => {
+    if (vendor.rentDue <= 0) return { label: 'Paid', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+    const dueDate = vendor.rentDueDate ? new Date(vendor.rentDueDate) : null;
+    const today = new Date();
+    if (dueDate && dueDate < today) return { label: 'Overdue', color: 'bg-red-100 text-red-700 border-red-200' };
+    return { label: 'Pending', color: 'bg-amber-100 text-amber-700 border-amber-200' };
+  };
 
   useEffect(() => {
     const fetchVendors = async () => {
@@ -88,12 +98,48 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
 
     return matchesSearch && matchesStatus && matchesMarket && matchesCity && matchesRentRange;
   }).sort((a, b) => {
+    if (nameSortOrder !== 'NONE') {
+      const comparison = a.name.localeCompare(b.name);
+      return nameSortOrder === 'ASC' ? comparison : -comparison;
+    }
     if (rentSortOrder === 'ASC') return a.rentDue - b.rentDue;
     if (rentSortOrder === 'DESC') return b.rentDue - a.rentDue;
     return 0;
   });
 
-  const availableMarketsForForm = MARKETS.filter(m => !newVendorData.cityId || m.cityId === newVendorData.cityId);
+  const toggleSelectAll = () => {
+    if (selectedVendorIds.length === filteredVendors.length) {
+      setSelectedVendorIds([]);
+    } else {
+      setSelectedVendorIds(filteredVendors.map(v => v.id));
+    }
+  };
+
+  const toggleSelectVendor = (id: string) => {
+    setSelectedVendorIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkAction = (action: 'ACTIVATE' | 'SUSPEND') => {
+    if (selectedVendorIds.length === 0) return;
+    const status = action === 'ACTIVATE' ? 'ACTIVE' : 'SUSPENDED';
+    setVendors(prev => prev.map(v => 
+      selectedVendorIds.includes(v.id) ? { ...v, status: status as any } : v
+    ));
+    setSelectedVendorIds([]);
+    alert(`Bulk ${action} completed for ${selectedVendorIds.length} nodes.`);
+  };
+
+  const toggleNameSort = () => {
+    setRentSortOrder('NONE');
+    setNameSortOrder(prev => prev === 'NONE' ? 'ASC' : prev === 'ASC' ? 'DESC' : 'NONE');
+  };
+
+  const toggleRentSort = () => {
+    setNameSortOrder('NONE');
+    setRentSortOrder(prev => prev === 'NONE' ? 'ASC' : prev === 'ASC' ? 'DESC' : 'NONE');
+  };
 
   const handleSubmitNewVendor = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,27 +171,31 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
         name: '', shopNumber: '', marketId: isMarketAdmin && marketId ? marketId : '', 
         email: '', phone: '', rentDue: 0, rentDueDate: '', vatDue: 0, status: 'ACTIVE', 
         kycVerified: false, gender: 'MALE', age: 30, cityId: '', level: '', 
-        section: '', storeType: 'Retail', ownershipType: 'Sole Proprietorship' 
+        section: '', storeType: ProductCategory.GENERAL, ownershipType: 'Sole Proprietorship' 
     });
-  };
-
-  const clearFilters = () => {
-    setSearchTerm('');
-    setSelectedCity('');
-    setSelectedMarket('');
-    setStatusFilter('ALL');
-    setRentDueFilter('ALL');
-    setRentSortOrder('NONE');
-  };
-
-  const toggleRentSort = () => {
-      if (rentSortOrder === 'NONE') setRentSortOrder('ASC');
-      else if (rentSortOrder === 'ASC') setRentSortOrder('DESC');
-      else setRentSortOrder('NONE');
   };
 
   return (
     <div className="space-y-6 animate-in fade-in">
+      {/* Bulk Action Toolbar */}
+      {selectedVendorIds.length > 0 && isMarketAdmin && (
+        <div className="bg-indigo-600 p-4 rounded-xl shadow-lg flex items-center justify-between animate-in slide-in-from-top-4 text-white">
+          <div className="flex items-center gap-4">
+             <div className="bg-white/20 p-2 rounded-lg font-black text-xs">{selectedVendorIds.length} Selected</div>
+             <p className="text-sm font-bold hidden md:block">Registry batch operations active.</p>
+          </div>
+          <div className="flex gap-2">
+             <button onClick={() => handleBulkAction('ACTIVATE')} className="px-4 py-2 bg-white text-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
+                <Play size={14}/> Activate All
+             </button>
+             <button onClick={() => handleBulkAction('SUSPEND')} className="px-4 py-2 bg-red-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-red-600 transition-all shadow-sm">
+                <Ban size={14}/> Suspend All
+             </button>
+             <button onClick={() => setSelectedVendorIds([])} className="p-2 text-white/60 hover:text-white"><X size={20}/></button>
+          </div>
+        </div>
+      )}
+
       {/* Filter Toolbar */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
         <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto">
@@ -177,12 +227,14 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                 <button 
                     onClick={toggleRentSort}
                     className={`px-3 py-2 transition-colors hover:bg-slate-200 flex items-center gap-1 border-l border-slate-200 ${rentSortOrder !== 'NONE' ? 'text-indigo-600 font-bold' : 'text-slate-400'}`}
-                    title="Sort by Rent Amount"
                 >
                     {rentSortOrder === 'ASC' ? <ArrowUp size={16} /> : rentSortOrder === 'DESC' ? <ArrowDown size={16} /> : <ArrowUpDown size={16} />}
-                    <span className="text-[10px] uppercase font-black tracking-widest hidden lg:inline">Sort</span>
                 </button>
             </div>
+
+            <button onClick={toggleNameSort} className={`px-4 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 flex items-center gap-2 transition-all ${nameSortOrder !== 'NONE' ? 'text-indigo-600 border-indigo-200 bg-indigo-50 font-bold' : 'text-slate-500'}`}>
+               Name {nameSortOrder === 'ASC' ? <ArrowUp size={14}/> : nameSortOrder === 'DESC' ? <ArrowDown size={14}/> : <ArrowUpDown size={14}/>}
+            </button>
 
             {!isMarketAdmin && (
               <>
@@ -196,7 +248,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                 </select>
               </>
             )}
-            <button onClick={clearFilters} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors" title="Reset Filters">
+            <button onClick={() => {setSearchTerm(''); setStatusFilter('ALL'); setRentSortOrder('NONE'); setNameSortOrder('NONE');}} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors" title="Reset Filters">
               <RefreshCcw size={18} />
             </button>
           </div>
@@ -212,64 +264,76 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
       {/* Vendor Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+          <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[10px] tracking-widest border-b border-slate-200">
             <tr>
+              {isMarketAdmin && (
+                <th className="px-6 py-4 w-10">
+                  <button onClick={toggleSelectAll} className="text-slate-400 hover:text-indigo-600">
+                    {selectedVendorIds.length === filteredVendors.length && filteredVendors.length > 0 ? <CheckSquare size={18}/> : <Square size={18}/>}
+                  </button>
+                </th>
+              )}
               <th className="px-6 py-4">Vendor Info</th>
-              <th className="px-6 py-4">Shop</th>
-              <th className="px-6 py-4">Rent / Due Date</th>
-              <th className="px-6 py-4">Account Status</th>
-              <th className="px-6 py-4 text-right">Actions</th>
+              <th className="px-6 py-4">Shop Node</th>
+              <th className="px-6 py-4">Rent Status</th>
+              <th className="px-6 py-4">Acc. Status</th>
+              <th className="px-6 py-4 text-right">Registry</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {filteredVendors.map(vendor => (
-              <tr key={vendor.id} className="hover:bg-slate-50 cursor-pointer group" onClick={() => setSelectedVendor(vendor)}>
-                <td className="px-6 py-4">
-                  <div className="font-bold text-slate-900">{vendor.name}</div>
-                  <div className="text-xs text-slate-500">{vendor.email || vendor.gender + ' • ' + vendor.age + 'y'}</div>
-                </td>
-                <td className="px-6 py-4">
-                    <div className="font-mono text-slate-700 font-bold">{vendor.shopNumber}</div>
-                    <div className="text-[10px] text-slate-400 uppercase">{vendor.section || 'General'}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="space-y-1">
-                      {vendor.rentDue > 0 ? (
-                        <span className="text-red-700 bg-red-50 px-2 py-1 rounded-full text-xs font-bold border border-red-100 flex items-center gap-1 w-fit">
-                          <AlertTriangle size={12} /> {vendor.rentDue.toLocaleString()} UGX
-                        </span>
-                      ) : (
-                        <span className="text-green-700 bg-green-50 px-2 py-1 rounded-full text-xs font-bold border border-green-100 flex items-center gap-1 w-fit">
-                          <CheckCircle size={12} /> Paid
-                        </span>
-                      )}
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold uppercase tracking-tight">
-                         <Calendar size={10} />
-                         {vendor.rentDueDate ? `Due: ${vendor.rentDueDate}` : 'No date set'}
-                      </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${vendor.status === 'ACTIVE' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                    {vendor.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                   <div className="flex justify-end gap-2">
-                     <button onClick={(e) => { e.stopPropagation(); setQrModalVendor(vendor); }} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-600" title="Store QR Profile">
-                       <QrCode size={18} />
-                     </button>
-                     <button onClick={(e) => { e.stopPropagation(); setSelectedVendor(vendor); }} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-600" title="View Details">
-                       <FileText size={18} />
-                     </button>
-                   </div>
-                </td>
-              </tr>
-            ))}
+            {filteredVendors.map(vendor => {
+              const rentStatus = getRentStatus(vendor);
+              return (
+                <tr key={vendor.id} className={`hover:bg-slate-50 cursor-pointer group transition-colors ${selectedVendorIds.includes(vendor.id) ? 'bg-indigo-50/30' : ''}`} onClick={() => setSelectedVendor(vendor)}>
+                  {isMarketAdmin && (
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                       <button onClick={() => toggleSelectVendor(vendor.id)} className={`${selectedVendorIds.includes(vendor.id) ? 'text-indigo-600' : 'text-slate-300'} transition-colors`}>
+                          {selectedVendorIds.includes(vendor.id) ? <CheckSquare size={18}/> : <Square size={18}/>}
+                       </button>
+                    </td>
+                  )}
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{vendor.name}</div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{vendor.email || vendor.gender + ' • ' + vendor.age + 'y'}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                      <div className="font-mono text-slate-700 font-bold text-xs">{vendor.shopNumber}</div>
+                      <div className="text-[10px] text-slate-400 uppercase font-black mt-0.5">{vendor.section || 'General'}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-1.5">
+                        <div className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border w-fit ${rentStatus.color}`}>
+                           {rentStatus.label}
+                        </div>
+                        {vendor.rentDue > 0 && (
+                          <div className="text-[10px] font-black text-slate-900 flex items-center gap-1">
+                            {vendor.rentDue.toLocaleString()} <span className="opacity-40">UGX</span>
+                          </div>
+                        )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${vendor.status === 'ACTIVE' ? 'bg-indigo-50 text-indigo-600' : 'bg-red-50 text-red-600'}`}>
+                      {vendor.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-1">
+                       <button onClick={(e) => { e.stopPropagation(); setQrModalVendor(vendor); }} className="p-2 hover:bg-slate-200 rounded-lg transition-all text-slate-400 hover:text-slate-900" title="Store QR Profile">
+                         <QrCode size={18} />
+                       </button>
+                       <button onClick={(e) => { e.stopPropagation(); setSelectedVendor(vendor); }} className="p-2 hover:bg-slate-200 rounded-lg transition-all text-slate-400 hover:text-indigo-600" title="View Details">
+                         <ArrowUpDown size={18} className="rotate-90" />
+                       </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {filteredVendors.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic font-medium">
-                   No registry nodes triangulated for current parameters.
+                <td colSpan={isMarketAdmin ? 6 : 5} className="px-6 py-12 text-center text-slate-400 italic font-medium uppercase tracking-[0.2em] text-xs">
+                   No registry nodes triangulated.
                 </td>
               </tr>
             )}
@@ -321,77 +385,6 @@ export const VendorModule: React.FC<VendorModuleProps> = ({ userRole = UserRole.
                <Button className="flex-1 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-indigo-100"><Download size={16} /> Export</Button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Add Vendor Modal */}
-      {showAddVendorModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95">
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 uppercase tracking-tight"><UserPlus size={20} className="text-indigo-600" /> Register Entity</h3>
-                  <button onClick={resetAddVendorModal} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
-              </div>
-              
-              {addVendorStep === 'FORM' ? (
-                <div className="p-6 overflow-y-auto">
-                    <form onSubmit={handleSubmitNewVendor} className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="col-span-2">
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Full Name *</label>
-                                <input required type="text" className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white outline-none ring-2 ring-transparent focus:ring-indigo-500 transition-all" value={newVendorData.name} onChange={e => setNewVendorData({...newVendorData, name: e.target.value})} />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Gender</label>
-                                <select className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white outline-none" value={newVendorData.gender} onChange={e => setNewVendorData({...newVendorData, gender: e.target.value as any})}><option value="MALE">Male</option><option value="FEMALE">Female</option></select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Age</label>
-                                <input type="number" className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white outline-none" value={newVendorData.age} onChange={e => setNewVendorData({...newVendorData, age: parseInt(e.target.value)})} />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
-                                <input type="email" className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white outline-none" value={newVendorData.email} onChange={e => setNewVendorData({...newVendorData, email: e.target.value})} />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Phone</label>
-                                <input type="text" className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white outline-none" value={newVendorData.phone} onChange={e => setNewVendorData({...newVendorData, phone: e.target.value})} />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">City</label>
-                                <select className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white outline-none" value={newVendorData.cityId} onChange={e => setNewVendorData({...newVendorData, cityId: e.target.value, marketId: ''})}><option value="">Select City</option>{CITIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Market *</label>
-                                <select required className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white outline-none" value={newVendorData.marketId} onChange={e => setNewVendorData({...newVendorData, marketId: e.target.value})} disabled={!newVendorData.cityId}><option value="">Select Market</option>{availableMarketsForForm.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
-                            </div>
-                            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Shop Number *</label><input required className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white outline-none font-mono" value={newVendorData.shopNumber} onChange={e => setNewVendorData({...newVendorData, shopNumber: e.target.value})} /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rent Amount (UGX)</label><input type="number" className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white outline-none" value={newVendorData.rentDue} onChange={e => setNewVendorData({...newVendorData, rentDue: parseFloat(e.target.value)})} /></div>
-                            <div className="col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rent Due Date</label><input type="date" className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white outline-none" value={newVendorData.rentDueDate} onChange={e => setNewVendorData({...newVendorData, rentDueDate: e.target.value})} /></div>
-                        </div>
-
-                        <div className="space-y-4 pt-4 border-t border-slate-100">
-                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><ShieldCheck size={14}/> Identity Verification</h4>
-                            <VendorKYCForm onFilesChange={(f, v) => setIsKycValid(v)} />
-                        </div>
-
-                        <div className="flex gap-3 pt-4">
-                            <Button type="button" variant="secondary" onClick={resetAddVendorModal} className="flex-1 uppercase font-black tracking-widest text-[10px]">Cancel</Button>
-                            <Button type="submit" disabled={isSubmittingNewVendor} className="flex-1 flex items-center justify-center gap-2 uppercase font-black tracking-widest text-[10px] shadow-xl shadow-indigo-100">{isSubmittingNewVendor ? <Loader2 className="animate-spin" /> : <Save size={16} />} Commit Registry</Button>
-                        </div>
-                    </form>
-                </div>
-              ) : (
-                <div className="p-10 flex flex-col items-center justify-center text-center animate-in zoom-in">
-                    <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6 shadow-sm"><Loader2 size={48} className="animate-spin" /></div>
-                    <h3 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tight">Registry Record Pending</h3>
-                    <p className="text-slate-500 mb-8 text-sm max-w-xs leading-relaxed font-medium">
-                        Vendor application for <strong>{newVendorData.name}</strong> at <strong>{getMarketName(newVendorData.marketId)}</strong> has been submitted. Awaiting administrative triangulation.
-                    </p>
-                    <Button onClick={resetAddVendorModal} className="w-full max-w-xs font-black uppercase tracking-widest text-xs">Return to Terminal</Button>
-                </div>
-              )}
-           </div>
         </div>
       )}
 

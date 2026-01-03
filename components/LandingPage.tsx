@@ -111,9 +111,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick }) => {
               <button onClick={onLoginClick} className="px-10 py-5 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-2xl shadow-indigo-200 transition-all hover:-translate-y-1 flex items-center justify-center gap-3">
                  Launch Console <ArrowRight size={20} />
               </button>
-              <button className="px-10 py-5 bg-white hover:bg-slate-50 text-slate-900 font-black uppercase tracking-widest text-xs rounded-2xl border-2 border-slate-100 transition-all shadow-sm">
+              <a href="#contact" className="px-10 py-5 bg-white hover:bg-slate-50 text-slate-900 font-black uppercase tracking-widest text-xs rounded-2xl border-2 border-slate-100 transition-all shadow-sm flex items-center justify-center">
                  Book a Demo
-              </button>
+              </a>
            </div>
         </div>
       </section>
@@ -245,49 +245,52 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick }) => {
               </div>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-10 rounded-[48px] shadow-2xl">
-              {contactStatus === 'SENT' ? (
-                <div className="h-full flex flex-col items-center justify-center text-center animate-in zoom-in duration-300">
-                  <div className="w-20 h-20 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mb-6 ring-4 ring-emerald-500/10">
-                    <CheckCircle2 size={40} />
+            <div className="bg-white p-10 rounded-[48px] shadow-2xl border border-white/20 relative group">
+              <div className="absolute inset-0 bg-indigo-600/10 rounded-[48px] blur-xl group-hover:bg-indigo-600/20 transition-all duration-700"></div>
+              <div className="relative z-10">
+                {contactStatus === 'SENT' ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center animate-in zoom-in duration-300">
+                    <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6 ring-4 ring-emerald-500/10">
+                      <CheckCircle2 size={40} />
+                    </div>
+                    <h4 className="text-2xl font-black text-slate-900 mb-2">Message Dispatched</h4>
+                    <p className="text-slate-500 font-medium">A regional trade specialist will contact <br/> you within 24 operational hours.</p>
+                    <button onClick={() => setContactStatus('IDLE')} className="mt-8 text-indigo-600 font-black uppercase text-xs tracking-widest hover:text-indigo-700 underline">Send another</button>
                   </div>
-                  <h4 className="text-2xl font-black mb-2">Message Dispatched</h4>
-                  <p className="text-slate-400 font-medium">A regional trade specialist will contact <br/> you within 24 operational hours.</p>
-                  <button onClick={() => setContactStatus('IDLE')} className="mt-8 text-indigo-400 font-black uppercase text-xs tracking-widest hover:text-indigo-300">Send another</button>
-                </div>
-              ) : (
-                <form onSubmit={handleContactSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Full Name</label>
-                      <input required className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder:text-white/20 outline-none focus:border-indigo-500 transition-all font-medium" placeholder="James Mukasa" />
+                ) : (
+                  <form onSubmit={handleContactSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Full Name</label>
+                        <input required className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-slate-900 placeholder:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all font-medium" placeholder="James Mukasa" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Work Email</label>
+                        <input required type="email" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-slate-900 placeholder:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all font-medium" placeholder="james@market.ug" />
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Work Email</label>
-                      <input required type="email" className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder:text-white/20 outline-none focus:border-indigo-500 transition-all font-medium" placeholder="james@market.ug" />
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Request Category</label>
+                      <select className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all font-medium appearance-none">
+                        <option>Market Administration Demo</option>
+                        <option>Bulk Supplier Registration</option>
+                        <option>Technical Partnership</option>
+                        <option>General Support</option>
+                      </select>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Inquiry Type</label>
-                    <select className="w-full bg-slate-800 border border-white/10 rounded-2xl px-5 py-4 text-white outline-none focus:border-indigo-500 transition-all font-medium appearance-none">
-                      <option>Market Administration Demo</option>
-                      <option>Bulk Supplier Registration</option>
-                      <option>Technical Partnership</option>
-                      <option>General Support</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Message</label>
-                    <textarea required rows={4} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder:text-white/20 outline-none focus:border-indigo-500 transition-all font-medium resize-none" placeholder="How can we help your operations?" />
-                  </div>
-                  <button 
-                    disabled={contactStatus === 'SENDING'}
-                    className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black uppercase tracking-widest text-xs rounded-2xl transition-all shadow-2xl shadow-indigo-900/40 flex items-center justify-center gap-3"
-                  >
-                    {contactStatus === 'SENDING' ? <><Loader2 className="animate-spin" size={18}/> Routing...</> : <><Send size={18}/> Initiate Contact</>}
-                  </button>
-                </form>
-              )}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Message</label>
+                      <textarea required rows={4} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-slate-900 placeholder:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all font-medium resize-none" placeholder="How can we help your operations?" />
+                    </div>
+                    <button 
+                      disabled={contactStatus === 'SENDING'}
+                      className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black uppercase tracking-widest text-xs rounded-2xl transition-all shadow-2xl shadow-indigo-900/20 flex items-center justify-center gap-3"
+                    >
+                      {contactStatus === 'SENDING' ? <><Loader2 className="animate-spin" size={18}/> Routing...</> : <><Send size={18}/> Initiate Contact</>}
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -368,12 +371,10 @@ const ContactInfo = ({ icon, title, value, subtitle }: { icon: any, title: strin
   </div>
 );
 
-// Fixed: Made className optional to prevent missing prop error
 const CheckCircle2 = ({ size, className = "" }: { size: number, className?: string }) => (
   <Check size={size} className={className} />
 );
 
-// Fixed: Made className optional to prevent missing prop error
 const Loader2 = ({ size, className = "" }: { size: number, className?: string }) => (
   <svg className={`animate-spin ${className}`} width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

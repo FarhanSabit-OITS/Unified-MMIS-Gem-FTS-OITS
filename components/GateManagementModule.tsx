@@ -7,7 +7,7 @@ import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { 
   QrCode, CheckCircle, Truck, Printer, Search, DollarSign, ShieldAlert,
-  Calendar, ArrowRight, Smartphone, ShieldCheck, Download, X, Car, Bike
+  Calendar, ArrowRight, Smartphone, ShieldCheck, Download, X, Car, Bike, Info
 } from 'lucide-react';
 
 const VEHICLE_FEES = {
@@ -18,7 +18,7 @@ const VEHICLE_FEES = {
 };
 
 export const GateManagementModule: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'TERMINAL' | 'DELIVERIES'>('TERMINAL');
+  const [activeTab, setActiveTab] = useState<'TERMINAL' | 'DELIVERIES' | 'LOGS'>('TERMINAL');
   const [tokens, setTokens] = useState<GateToken[]>(MOCK_TOKENS);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleCategory>(VehicleCategory.SALOON_CAR);
@@ -47,18 +47,16 @@ export const GateManagementModule: React.FC = () => {
   const calculateFees = () => {
       if (!foundBid) return;
       
-      const supplyAmount = foundBid.amount;
       const parkingFee = VEHICLE_FEES[selectedVehicle];
       const vatRate = 0.18; // URA VAT Standard
       
-      const vat = supplyAmount * vatRate;
+      const vat = parkingFee * vatRate;
       const total = parkingFee + vat;
 
       setPendingPayment({
           amount: total,
           taxAmount: vat,
-          description: `Compliance Pass: ${foundBid.supplierName} (${selectedVehicle})`,
-          supplyValue: supplyAmount,
+          description: `Gate Entry: ${foundBid.supplierName} (${selectedVehicle})`,
           parking: parkingFee
       });
   };
@@ -68,7 +66,7 @@ export const GateManagementModule: React.FC = () => {
           id: `gt${Date.now()}`,
           code: `MMIS-ENT-${Math.floor(Math.random()*9000)+1000}`,
           type: 'ENTRY',
-          entityName: foundBid?.supplierName || 'Logistics Node',
+          entityName: foundBid?.supplierName || 'General Logistics',
           status: 'ACTIVE',
           generatedAt: new Date().toISOString(),
           vehicleType: selectedVehicle,
@@ -111,6 +109,7 @@ export const GateManagementModule: React.FC = () => {
           <div className="flex bg-slate-100 p-1.5 rounded-2xl shadow-inner border border-slate-200">
              <button onClick={() => setActiveTab('TERMINAL')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'TERMINAL' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}>Gate Inbound</button>
              <button onClick={() => setActiveTab('DELIVERIES')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'DELIVERIES' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}>Manifest Queue</button>
+             <button onClick={() => setActiveTab('LOGS')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'LOGS' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}>System Logs</button>
           </div>
        </div>
 
@@ -168,7 +167,7 @@ export const GateManagementModule: React.FC = () => {
                                         <p className="text-2xl font-black text-slate-900 leading-tight">{foundBid.supplierName}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Manifest Value</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Assigned Value</p>
                                         <p className="text-2xl font-black text-indigo-600">{foundBid.amount.toLocaleString()} UGX</p>
                                     </div>
                                 </div>
@@ -176,15 +175,15 @@ export const GateManagementModule: React.FC = () => {
                                 <div className="bg-white border border-slate-200 p-6 rounded-3xl flex gap-5 items-center shadow-sm">
                                     <ShieldAlert className="text-amber-500" size={32} />
                                     <div>
-                                        <p className="text-xs font-black text-slate-900 uppercase tracking-widest mb-1">Taxation Logic Applied</p>
+                                        <p className="text-xs font-black text-slate-900 uppercase tracking-widest mb-1">Taxation Protocol</p>
                                         <p className="text-xs font-medium text-slate-500 leading-relaxed">
-                                            Compliance surcharge: 18% VAT on Supply Amount + Entry Base Fee.
+                                            Gate entry fee includes 18% URA VAT and standard parking levy for {selectedVehicle.replace('_', ' ')}.
                                         </p>
                                     </div>
                                 </div>
 
                                 <Button onClick={calculateFees} className="w-full h-20 rounded-3xl font-black uppercase tracking-[0.2em] text-sm shadow-2xl shadow-indigo-100">
-                                    Generate Exit manifest & Pay
+                                    Process Entry Pass & Pay
                                 </Button>
                             </div>
                         )}
@@ -207,6 +206,9 @@ export const GateManagementModule: React.FC = () => {
                                         <p className="text-[10px] text-slate-500 font-mono tracking-widest">{t.code}</p>
                                     </div>
                                 </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-black uppercase">{t.status}</p>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -216,7 +218,7 @@ export const GateManagementModule: React.FC = () => {
                    <Smartphone className="mx-auto mb-4 text-slate-300" size={40} />
                    <h5 className="font-black uppercase text-[10px] tracking-widest text-slate-400 mb-2">Exit Scanner</h5>
                    <input className="w-full px-4 py-4 rounded-2xl bg-slate-50 border-2 border-slate-100 outline-none mb-4 text-center font-mono font-black" placeholder="PASS CODE" />
-                   <Button variant="secondary" className="w-full h-12 uppercase font-black text-[10px] tracking-widest">Mark Exit</Button>
+                   <Button variant="secondary" className="w-full h-12 uppercase font-black text-[10px] tracking-widest">Mark Departure</Button>
                 </div>
              </div>
          </div>
@@ -234,7 +236,7 @@ export const GateManagementModule: React.FC = () => {
                        </div>
                        <h4 className="text-xl font-black text-slate-900 mb-1 leading-tight uppercase">{bid.supplierName}</h4>
                        <p className="text-xs font-bold text-slate-400 mb-6 flex items-center gap-2 uppercase tracking-widest">
-                           <Calendar size={14} /> Schedule: {bid.deliveryDate}
+                           <Calendar size={14} /> Est. Delivery: {bid.deliveryDate}
                        </p>
                        <div className="bg-slate-50 p-5 rounded-3xl mb-8 flex justify-between items-center border border-slate-100">
                            <div>
@@ -253,11 +255,42 @@ export const GateManagementModule: React.FC = () => {
                             }}
                             className="w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em]"
                        >
-                           Initialize Entry
+                           Initialize Terminal Entry
                        </Button>
                    </Card>
                ))}
            </div>
+       )}
+
+       {activeTab === 'LOGS' && (
+           <Card className="rounded-[32px] border-slate-200 overflow-hidden shadow-xl">
+               <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-50 text-slate-500 font-black uppercase text-[10px] tracking-widest border-b border-slate-200">
+                            <tr>
+                                <th className="px-8 py-5">Timestamp</th>
+                                <th className="px-8 py-5">Entity</th>
+                                <th className="px-8 py-5">Category</th>
+                                <th className="px-8 py-5">Fee (incl. VAT)</th>
+                                <th className="px-8 py-5 text-right">Registry Code</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {tokens.map(token => (
+                                <tr key={token.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-8 py-5 font-medium text-slate-500">{new Date(token.generatedAt).toLocaleString()}</td>
+                                    <td className="px-8 py-5 font-black text-slate-900 uppercase">{token.entityName}</td>
+                                    <td className="px-8 py-5">
+                                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase">{token.vehicleType?.replace('_', ' ') || 'GENERAL'}</span>
+                                    </td>
+                                    <td className="px-8 py-5 font-black text-indigo-600">{token.associatedFee.toLocaleString()} UGX</td>
+                                    <td className="px-8 py-5 text-right font-mono font-bold text-slate-400">{token.code}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+               </div>
+           </Card>
        )}
 
        {receiptToken && (
@@ -267,8 +300,8 @@ export const GateManagementModule: React.FC = () => {
                    <div className="w-24 h-24 bg-emerald-50 text-emerald-600 rounded-[32px] flex items-center justify-center mx-auto mb-8">
                        <CheckCircle size={48} />
                    </div>
-                   <h3 className="text-3xl font-black text-slate-900 tracking-tighter mb-2 uppercase">Gate Pass Issued</h3>
-                   <p className="text-slate-500 text-sm font-bold mb-10 leading-relaxed uppercase tracking-tight">Access triangulated for <span className="text-indigo-600 font-black">{receiptToken.entityName}</span>.</p>
+                   <h3 className="text-3xl font-black text-slate-900 tracking-tighter mb-2 uppercase">Entry Triangulated</h3>
+                   <p className="text-slate-500 text-sm font-bold mb-10 leading-relaxed uppercase tracking-tight">Access granted for <span className="text-indigo-600 font-black">{receiptToken.entityName}</span>.</p>
                    
                    <div className="bg-slate-900 p-10 rounded-[48px] shadow-2xl mb-10 border-4 border-slate-800">
                        <div className="bg-white p-5 rounded-3xl shadow-inner inline-block relative z-10">
@@ -276,14 +309,14 @@ export const GateManagementModule: React.FC = () => {
                        </div>
                        <p className="text-white mt-6 font-mono font-black tracking-[0.2em] text-lg">{receiptToken.code}</p>
                        <div className="mt-4 flex items-center justify-center gap-3 text-slate-500 font-black text-[10px] uppercase tracking-[0.2em]">
-                           <ShieldCheck size={14} className="text-indigo-400"/> Authenticated
+                           <ShieldCheck size={14} className="text-indigo-400"/> Authenticated Node
                        </div>
                    </div>
 
                    <div className="flex gap-4">
                         <Button variant="secondary" className="flex-1 h-16 rounded-3xl font-black uppercase tracking-widest text-[10px]"><Download size={20} className="mr-2"/> Save</Button>
                         <Button className="flex-1 h-16 rounded-3xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-indigo-100" onClick={() => { alert("Printing..."); setReceiptToken(null); }}>
-                            <Printer size={20} className="mr-2"/> Print
+                            <Printer size={20} className="mr-2"/> Print Pass
                         </Button>
                    </div>
                </div>

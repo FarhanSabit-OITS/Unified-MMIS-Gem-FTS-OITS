@@ -49,7 +49,6 @@ export enum TicketContext {
   MAINTENANCE = 'MAINTENANCE',
   TRADE_DISPUTE = 'TRADE_DISPUTE',
   UTILITY_FAILURE = 'UTILITY_FAILURE',
-  // Added missing context members
   ASSET = 'ASSET',
   SUPPLY = 'SUPPLY',
   COMPLAINT = 'COMPLAINT'
@@ -62,7 +61,6 @@ export enum TicketPriority {
   CRITICAL = 'CRITICAL'
 }
 
-// Added ApplicationStatus enum for role access requests
 export enum ApplicationStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
@@ -81,7 +79,6 @@ export interface User {
 export interface UserProfile extends User {
   phone?: string;
   avatarUrl?: string;
-  // Added kycStatus for onboarding logic
   kycStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
@@ -164,7 +161,6 @@ export interface Requisition {
   status: 'OPEN' | 'BIDDING' | 'FULFILLED';
   createdAt: string;
   deadline: string;
-  // Added marketId for context
   marketId?: string;
 }
 
@@ -179,7 +175,6 @@ export interface Ticket {
   createdByRole: UserRole;
   marketId: string;
   assignedTo?: string;
-  // Added attachmentUrl for file support
   attachmentUrl?: string;
 }
 
@@ -192,7 +187,6 @@ export interface Notification {
   read: boolean;
 }
 
-// Added Supplier interface
 export interface Supplier {
   id: string;
   companyName: string;
@@ -203,7 +197,6 @@ export interface Supplier {
   kycVerified: boolean;
 }
 
-// Added Sale interface for POS
 export interface Sale {
   id: string;
   date: string;
@@ -213,7 +206,6 @@ export interface Sale {
   paymentMethod: 'CASH' | 'MOMO' | 'CARD';
 }
 
-// Added Order interface for OrdersModule
 export interface Order {
   id: string;
   customerName: string;

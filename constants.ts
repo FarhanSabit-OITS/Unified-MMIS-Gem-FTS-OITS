@@ -8,10 +8,9 @@ import {
 export const MARKETS: Market[] = [
   { id: 'm1', cityId: 'c1', name: 'Nakasero Fresh Hub', type: MarketType.FARMERS, ownership: 'PUBLIC', establishmentDate: '1927-01-01' },
   { id: 'm2', cityId: 'c1', name: 'Owino Wholesale', type: MarketType.WHOLESALE, ownership: 'PUBLIC', establishmentDate: '1971-06-15' },
-  { id: 'm3', cityId: 'c2', name: 'Mbarara specialized', type: MarketType.SPECIALIZED, ownership: 'PPP', establishmentDate: '2010-03-20' },
+  { id: 'm3', cityId: 'c2', name: 'Mbarara Specialized', type: MarketType.SPECIALIZED, ownership: 'PPP', establishmentDate: '2010-03-20' },
 ];
 
-// Added CITIES constant
 export const CITIES = [
   { id: 'c1', name: 'Kampala' },
   { id: 'c2', name: 'Mbarara' },
@@ -35,6 +34,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   { id: 'tx1', entityId: 'v2', date: '2023-11-01', amount: 200000, type: PaymentType.RENT, status: 'PAID', method: 'MTN_MOMO', reference: 'RENT-NOV-V2' },
   { id: 'tx2', entityId: 'gate', date: '2023-11-02', amount: 5000, type: PaymentType.GATE_FEE, status: 'PAID', method: 'CASH' },
   { id: 'tx3', entityId: 'v1', date: '2023-11-03', amount: 18000, type: PaymentType.URA_VAT, status: 'PENDING', method: 'AIRTEL_MONEY' },
+  { id: 'tx4', entityId: 'v3', date: '2023-11-04', amount: 45000, type: PaymentType.UTILITY, status: 'PAID', method: 'BANK' },
 ];
 
 export const MOCK_BIDS: Bid[] = [
@@ -45,7 +45,6 @@ export const MOCK_REQUISITIONS: Requisition[] = [
   { id: 'req1', vendorId: 'v1', vendorName: 'Alice Namatovu', items: [{ name: 'Onions', qty: 50, unit: 'Sacks' }], status: 'OPEN', createdAt: '2023-11-01T08:00:00Z', deadline: '2023-11-10T17:00:00Z', marketId: 'm1' },
 ];
 
-// Added missing mock exports
 export const MOCK_SUPPLIERS: Supplier[] = [
   { id: 's1', companyName: 'Agro Uganda Ltd', rating: 4.5, totalRatings: 120, categories: ['Groceries', 'Livestock'], trustScore: 92, kycVerified: true },
   { id: 's2', companyName: 'Tech Supplies East', rating: 4.0, totalRatings: 45, categories: ['Electronics', 'Hardware'], trustScore: 88, kycVerified: true },
@@ -53,6 +52,7 @@ export const MOCK_SUPPLIERS: Supplier[] = [
 
 export const MOCK_TICKETS: Ticket[] = [
   { id: 't1', title: 'Leaking Roof Unit A-101', description: 'Major leak during heavy rain.', context: TicketContext.MAINTENANCE, priority: TicketPriority.HIGH, status: 'OPEN', createdAt: '2023-11-01T08:00:00Z', createdByRole: UserRole.VENDOR, marketId: 'm1' },
+  { id: 't2', title: 'Power Surge Quadrant B', description: 'Regular surges affecting electronics.', context: TicketContext.UTILITY_FAILURE, priority: TicketPriority.CRITICAL, status: 'OPEN', createdAt: '2023-11-05T14:20:00Z', createdByRole: UserRole.VENDOR, marketId: 'm1' },
 ];
 
 export const MOCK_STAFF = [
@@ -60,7 +60,7 @@ export const MOCK_STAFF = [
 ];
 
 export const MOCK_TOKENS: GateToken[] = [
-  { id: 'gt1', code: 'MMIS-ENT-1234', type: 'ENTRY', entityName: 'Truck 1', status: 'ACTIVE', generatedAt: new Date().toISOString(), associatedFee: 5000, taxAmount: 900 },
+  { id: 'gt1', code: 'MMIS-ENT-1234', type: 'ENTRY', entityName: 'Truck 1', status: 'ACTIVE', generatedAt: new Date().toISOString(), vehicleType: VehicleCategory.HEAVY_TRUCK, associatedFee: 15000, taxAmount: 2700 },
 ];
 
 export const MOCK_CCTV = [
