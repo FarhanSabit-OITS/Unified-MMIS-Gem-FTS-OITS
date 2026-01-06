@@ -117,6 +117,7 @@ export interface Vendor {
 
 export interface Product {
   id: string;
+  vendorId: string;
   name: string;
   category: ProductCategory;
   stock: number;

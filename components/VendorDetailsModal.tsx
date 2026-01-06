@@ -1,13 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Vendor, Transaction, UserRole, Market, PaymentType } from '../types';
-import { MOCK_TRANSACTIONS, MARKETS, CITIES } from '../constants';
-// Added LayoutGrid for Market Type representation
+import { Vendor, Transaction, UserRole, Market, PaymentType, Product } from '../types';
+import { MOCK_TRANSACTIONS, MARKETS, CITIES, MOCK_PRODUCTS } from '../constants';
 import { 
   X, User, History, FileText, Building2, MapPin, 
   Phone, Mail, Calendar, Wallet, Info, Receipt,
   CheckCircle, AlertTriangle, Clock, ShieldCheck, Tag, Edit3,
-  Download, DollarSign, LayoutGrid
+  Download, DollarSign, LayoutGrid, ShoppingBag, Package
 } from 'lucide-react';
 import { Button } from './ui/Button';
 
@@ -21,7 +20,7 @@ interface VendorDetailsModalProps {
 export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({ 
   vendor, userRole, onClose, onUpdateVendor 
 }) => {
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'HISTORY' | 'DOCUMENTS' | 'EDIT'>('OVERVIEW');
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'HISTORY' | 'PRODUCTS' | 'DOCUMENTS' | 'EDIT'>('OVERVIEW');
   const [historyFilter, setHistoryFilter] = useState<'ALL' | 'RENT' | 'VAT'>('ALL');
   const [editedData, setEditedData] = useState<Vendor>({ ...vendor });
 
@@ -35,6 +34,8 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
     if (historyFilter === 'VAT') return t.type === PaymentType.URA_VAT;
     return true;
   });
+
+  const vendorProducts = MOCK_PRODUCTS.filter(p => p.vendorId === vendor.id);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -65,6 +66,7 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
             {[
                 { id: 'OVERVIEW', label: 'Telemetry', icon: Info },
                 { id: 'HISTORY', label: 'Fiscal Ledger', icon: History },
+                { id: 'PRODUCTS', label: 'Inventory', icon: ShoppingBag },
                 { id: 'DOCUMENTS', label: 'Registry KYC', icon: ShieldCheck },
                 { id: 'EDIT', label: 'Node Control', icon: Edit3 }
             ].map(tab => (
@@ -80,7 +82,8 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
 
         <div className="p-10 space-y-8 overflow-y-auto bg-white flex-1">
            {activeTab === 'OVERVIEW' && (
-               <div className="space-y-10 animate-in fade-in">
+               <div className="space-y-12 animate-in fade-in">
+                {/* Financial Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className={`p-8 rounded-[40px] border-4 flex flex-col justify-between shadow-inner ${vendor.rentDue > 0 ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}`}>
                         <div>
@@ -95,7 +98,6 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
                                     {vendor.rentDueDate || 'Lifecycle Pending'}
                                 </div>
                             </div>
-                            <button className="px-5 py-2 bg-white text-slate-950 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-slate-100 shadow-sm hover:bg-slate-50">Adjust Ledger</button>
                         </div>
                     </div>
                     <div className="p-8 bg-slate-950 text-white rounded-[40px] shadow-2xl flex flex-col justify-between relative overflow-hidden group">
@@ -106,45 +108,57 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
                         </div>
                         <div className="relative z-10 mt-8 flex items-center gap-3 text-indigo-400">
                             <ShieldCheck size={20} className="animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Operational Readiness Validated</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Registry Validated</span>
                         </div>
                     </div>
                 </div>
 
+                {/* Explicit Market Registration Details */}
                 <div className="space-y-6">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] flex items-center gap-3">
-                    <Building2 size={16} className="text-indigo-500" /> Registry Context Matrix
+                    <Building2 size={16} className="text-indigo-500" /> Market Hub Enrollment
                   </h4>
-                  <div className="bg-slate-50 rounded-[32px] border-2 border-slate-100 p-8 flex flex-col gap-8">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                        <div className="flex items-center gap-6">
-                          <div className="w-16 h-16 bg-white rounded-3xl shadow-md border border-slate-100 flex items-center justify-center text-indigo-600 shrink-0">
-                            <Building2 size={32} />
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Primary Market Hub</p>
-                            <p className="text-2xl font-black text-slate-950 tracking-tighter uppercase">{market?.name || 'Unassigned Hub'}</p>
-                            <div className="flex gap-2 mt-2">
-                                <span className="bg-white border border-slate-200 text-slate-600 px-3 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm">
-                                    <LayoutGrid size={10} className="text-indigo-500"/> {market?.type || 'MIXED'} HUB
-                                </span>
-                                <span className="bg-white border border-slate-200 text-slate-600 px-3 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm">
-                                    <MapPin size={10} className="text-rose-500"/> {city?.name || 'UNKNOWN LOCATION'}
-                                </span>
-                            </div>
-                          </div>
+                  <div className="bg-slate-50 rounded-[40px] border-2 border-slate-100 p-10">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                        <div className="space-y-3">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <Building2 size={12} className="text-indigo-500"/> Registered Hub
+                            </p>
+                            <p className="text-xl font-black text-slate-900 tracking-tighter uppercase leading-tight">
+                                {market?.name || 'PENDING ASSIGNMENT'}
+                            </p>
                         </div>
                         
-                        <div className="flex items-center gap-8 md:border-l md:border-slate-200 md:pl-8">
-                           <div>
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sector Node</p>
-                              <p className="text-sm font-black text-slate-800 uppercase tracking-widest">{vendor.section || 'General'}</p>
-                           </div>
-                           <div>
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Unit Tag</p>
-                              <p className="text-sm font-black text-indigo-600 font-mono tracking-widest">#{vendor.shopNumber}</p>
-                           </div>
+                        <div className="space-y-3">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <LayoutGrid size={12} className="text-indigo-500"/> Hub Classification
+                            </p>
+                            <div className="flex">
+                                <span className="bg-white border-2 border-slate-200 text-indigo-700 px-4 py-1 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm">
+                                    {market?.type || 'MIXED'} NODE
+                                </span>
+                            </div>
                         </div>
+
+                        <div className="space-y-3">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <MapPin size={12} className="text-rose-500"/> Geographic Location
+                            </p>
+                            <p className="text-xl font-black text-slate-900 tracking-tighter uppercase leading-tight">
+                                {city?.name || 'UNKNOWN REGION'}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div className="mt-10 pt-8 border-t border-slate-200 flex flex-wrap gap-8">
+                       <div className="space-y-1">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sector Node</p>
+                          <p className="text-sm font-bold text-slate-700 uppercase tracking-widest">{vendor.section || 'General'}</p>
+                       </div>
+                       <div className="space-y-1">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Unit Tag</p>
+                          <p className="text-sm font-black text-indigo-600 font-mono tracking-widest">#{vendor.shopNumber}</p>
+                       </div>
                     </div>
                   </div>
                 </div>
@@ -216,28 +230,57 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
                            </tbody>
                        </table>
                    </div>
-
-                   <div className="p-10 bg-slate-950 rounded-[40px] border-none shadow-2xl flex flex-col md:flex-row items-center justify-between text-white relative overflow-hidden group">
-                       <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity"><DollarSign size={100}/></div>
-                       <div className="flex items-center gap-6 relative z-10">
-                            <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center text-indigo-400">
-                                <Wallet size={32} />
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-1">Total Remittance Flow</p>
-                                <p className="text-3xl font-black tracking-tighter">
-                                    {vendorTransactions.filter(t => t.status === 'PAID').reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()} <span className="text-sm opacity-40 font-medium">UGX</span>
-                                </p>
-                            </div>
-                       </div>
-                       <div className="relative z-10 px-8 py-3 bg-white/5 border border-white/10 rounded-2xl">
-                           <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Integrity Status</p>
-                           <p className="text-xs font-black text-emerald-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                               <ShieldCheck size={14}/> Node Fiscal Health: Prime
-                           </p>
-                       </div>
-                   </div>
                </div>
+           )}
+
+           {activeTab === 'PRODUCTS' && (
+             <div className="space-y-6 animate-in fade-in">
+                <div className="bg-white rounded-[40px] border border-slate-200 overflow-hidden shadow-2xl">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-950 text-indigo-400 font-black uppercase text-[10px] tracking-[0.4em] border-b border-slate-900">
+                      <tr>
+                        <th className="px-8 py-8">Product Node</th>
+                        <th className="px-8 py-8">Classification</th>
+                        <th className="px-8 py-8">Stock Metric</th>
+                        <th className="px-8 py-8 text-right">Unit Value (UGX)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {vendorProducts.map(product => (
+                        <tr key={product.id} className="hover:bg-indigo-50/30 transition-all group">
+                          <td className="px-8 py-6">
+                            <div className="flex items-center gap-5">
+                              <div className="p-4 bg-slate-100 rounded-2xl text-slate-500 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                <Package size={20} />
+                              </div>
+                              <div>
+                                <div className="font-black text-slate-900 uppercase tracking-tight text-base leading-none">{product.name}</div>
+                                <div className="text-[10px] text-slate-400 font-mono font-bold mt-2 tracking-widest">SKU: {product.sku}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-8 py-6">
+                            <span className="px-4 py-1.5 rounded-full font-black uppercase text-[9px] tracking-widest border-2 bg-slate-50 text-slate-500 border-slate-100">
+                              {product.category}
+                            </span>
+                          </td>
+                          <td className="px-8 py-6">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-2 h-2 rounded-full ${product.stock < 10 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`}></div>
+                              <span className={`text-[11px] font-black uppercase tracking-widest ${product.stock < 10 ? 'text-rose-600' : 'text-slate-700'}`}>
+                                {product.stock} Units Available
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-8 py-6 text-right font-black text-slate-950 text-base tabular-nums">
+                            {product.price.toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+             </div>
            )}
         </div>
       </div>

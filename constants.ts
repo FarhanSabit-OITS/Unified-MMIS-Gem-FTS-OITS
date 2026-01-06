@@ -72,9 +72,13 @@ export const MOCK_VENDORS: Vendor[] = [
 ];
 
 export const MOCK_PRODUCTS: Product[] = [
-  { id: 'p1', name: 'Premium Matooke', category: ProductCategory.GROCERIES, stock: 45, price: 25000, sku: 'MTK-001' },
-  { id: 'p2', name: 'LED Smart Bulb', category: ProductCategory.ELECTRONICS, stock: 120, price: 15000, sku: 'LIT-44' },
-  { id: 'p3', name: 'Heavy Duty Shovel', category: ProductCategory.HARDWARE, stock: 15, price: 45000, sku: 'TLS-HD' },
+  { id: 'p1', vendorId: 'v1', name: 'Premium Matooke', category: ProductCategory.GROCERIES, stock: 45, price: 25000, sku: 'MTK-001' },
+  { id: 'p2', vendorId: 'v1', name: 'Sweet Potatoes', category: ProductCategory.GROCERIES, stock: 80, price: 15000, sku: 'POT-02' },
+  { id: 'p3', vendorId: 'v2', name: 'LED Smart Bulb', category: ProductCategory.ELECTRONICS, stock: 120, price: 15000, sku: 'LIT-44' },
+  { id: 'p4', vendorId: 'v2', name: 'Digital Multimeter', category: ProductCategory.ELECTRONICS, stock: 5, price: 85000, sku: 'MET-X1' },
+  { id: 'p5', vendorId: 'v4', name: 'Heavy Duty Shovel', category: ProductCategory.HARDWARE, stock: 15, price: 45000, sku: 'TLS-HD' },
+  { id: 'p6', vendorId: 'v4', name: 'Standard Cement Bag', category: ProductCategory.HARDWARE, stock: 200, price: 32000, sku: 'CEM-UG' },
+  { id: 'p7', vendorId: 'v3', name: 'Cotton T-Shirt', category: ProductCategory.TEXTILES, stock: 500, price: 12000, sku: 'TEX-TS' },
 ];
 
 export const MOCK_TRANSACTIONS: Transaction[] = [
