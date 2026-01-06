@@ -1,6 +1,9 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Minimize2, Loader2 } from 'lucide-react';
 import { ApiService } from '../services/api';
+// Fix: Import GoogleGenAI from @google/genai
+import { GoogleGenAI } from "@google/genai";
 
 export const AIChatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,20 +29,33 @@ export const AIChatbot: React.FC = () => {
     setIsThinking(true);
 
     try {
-      // Use BFF Service instead of direct client-side call
-      // Fix: Use correct API method path
-      const response = await ApiService.ai.chat(userMsg);
+      // Fix: Initialize GoogleGenAI SDK with the automatically injected API key
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // Fix: Use ai.models.generateContent to query the model with history
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: [
+          ...messages.filter((m, i) => i > 0 || m.role === 'user').map(m => ({
+            role: m.role,
+            parts: [{ text: m.text }]
+          })),
+          { role: 'user', parts: [{ text: userMsg }] }
+        ],
+        config: {
+          systemInstruction: 'You are the MMIS Assistant. Help users manage market operations. Be concise and professional.',
+        },
+      });
       
+      // Fix: Extract generated text from the response object
       setMessages(prev => [...prev, { 
         role: 'model', 
-        text: response.data.text || response.data.response || "I received your message but couldn't generate a text response." 
+        text: response.text || "I received your message but couldn't generate a text response." 
       }]);
     } catch (error) {
       console.error("AI Service Error:", error);
-      // Fallback for demo/offline mode if backend isn't reachable
       setMessages(prev => [...prev, { 
         role: 'model', 
-        text: "I'm having trouble connecting to the neural core (Backend API). Please ensure the backend is running." 
+        text: "I'm having trouble connecting to the neural core. Please check your connection." 
       }]);
     } finally {
       setIsThinking(false);

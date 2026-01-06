@@ -1,8 +1,11 @@
+
 import React, { useState } from 'react';
 import { MOCK_TICKETS, MOCK_STAFF } from '../constants';
 import { TicketPriority, TicketContext, UserRole, Ticket } from '../types';
 import { AlertCircle, Wrench, MessageSquare, Package, Bot, Paperclip, Send, Lock, Plus, Search, UserPlus, Check, X } from 'lucide-react';
 import { ApiService } from '../services/api';
+// Fix: Import GoogleGenAI from @google/genai
+import { GoogleGenAI } from "@google/genai";
 
 interface TicketSystemProps {
   userRole?: UserRole;
@@ -77,9 +80,17 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
   const generateSummary = async (description: string) => {
     setIsLoadingSummary(true);
     try {
-      // Changed from client-side direct call to BFF Service call
-      const response = await ApiService.ai.summarize(description);
-      setAiSummary(response.data.summary || response.data.text || "Summary generated.");
+      // Fix: Use GoogleGenAI SDK directly instead of calling a remote BFF
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: `Summarize the following support ticket description for a market administrator: ${description}`,
+        config: {
+          systemInstruction: 'You are an AI assistant helping market administrators by providing concise summaries of reported issues.',
+        }
+      });
+      // Fix: Access response text property directly
+      setAiSummary(response.text || "Summary generated.");
     } catch (error) {
       console.warn("AI Service unavailable, falling back to mock.");
       // Fallback for demo if backend is offline
@@ -106,7 +117,7 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ userRole = UserRole.
         status: 'OPEN',
         createdAt: new Date().toISOString(),
         createdByRole: userRole,
-        marketId: marketId, // Assign ticket to current user's market context
+        marketId: marketId || 'm1', // Assign ticket to current user's market context
         attachmentUrl: newTicket.file ? newTicket.file.name : undefined
     };
 
