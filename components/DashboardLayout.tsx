@@ -49,7 +49,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, setUser,
       case 'suppliers': return <SuppliersNetwork userRole={user.role} userId={user.id} />;
       case 'tickets': return <TicketSystem userRole={user.role} marketId={user.marketId} />;
       case 'users': return <UserManagementModule currentUser={user} />;
-      case 'registry': return <MarketRegistry />;
+      // Added missing userRole prop to MarketRegistry for RBAC awareness
+      case 'registry': return <MarketRegistry userRole={user.role} />;
       case 'assets': return <AssetManagementModule userRole={user.role} marketId={user.marketId} />;
       case 'myshop': return <MyShopModule isSupplier={isSupplier} />;
       case 'financials': return <FinancialsModule role={user.role} marketId={user.marketId} />;

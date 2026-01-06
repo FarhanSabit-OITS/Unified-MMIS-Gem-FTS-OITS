@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { MOCK_REQUISITIONS, MOCK_BIDS } from '../constants';
-import { Requisition, Bid } from '../types';
+import { Requisition, Bid, UserRole } from '../types';
 import { Truck, Plus, Calendar, Clock, CheckCircle2, XCircle, Search, DollarSign, Bot, Check, X } from 'lucide-react';
 
-export const SupplyRequisitions: React.FC = () => {
+export const SupplyRequisitions: React.FC<{ userRole?: UserRole }> = ({ userRole }) => {
   const [requisitions, setRequisitions] = useState<Requisition[]>(MOCK_REQUISITIONS);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedReqForBids, setSelectedReqForBids] = useState<Requisition | null>(null);

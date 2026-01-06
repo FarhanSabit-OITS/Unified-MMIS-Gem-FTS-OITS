@@ -6,7 +6,8 @@ import {
   Search, QrCode, UserPlus, Store, ArrowUpDown, ArrowUp, ArrowDown, 
   ShieldCheck, Play, Ban, X, Download, Printer, Filter, 
   CheckSquare, Square, DollarSign, ListFilter, MoreVertical,
-  Building2, MapPin, CheckCircle2, AlertCircle, Calendar, Clock
+  Building2, MapPin, CheckCircle2, AlertCircle, Calendar, Clock,
+  User, ChevronDown
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { VendorDetailsModal } from './VendorDetailsModal';
@@ -32,6 +33,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
   const [selectedMarket, setSelectedMarket] = useState(marketId || 'ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [rentSortOrder, setRentSortOrder] = useState<'LOW_HIGH' | 'HIGH_LOW' | 'NONE'>('NONE');
+  const [nameSortOrder, setNameSortOrder] = useState<'A_Z' | 'Z_A' | 'NONE'>('NONE');
   
   // Modals
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
@@ -86,6 +88,13 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
       return matchesSearch && matchesStatus && matchesMarket;
     });
 
+    // Sort by Alphabetical Name
+    if (nameSortOrder === 'A_Z') {
+      result = [...result].sort((a, b) => a.name.localeCompare(b.name));
+    } else if (nameSortOrder === 'Z_A') {
+      result = [...result].sort((a, b) => b.name.localeCompare(a.name));
+    }
+
     // Sort by Rent Due Magnitude
     if (rentSortOrder === 'LOW_HIGH') {
       result = [...result].sort((a, b) => a.rentDue - b.rentDue);
@@ -94,7 +103,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
     }
 
     return result;
-  }, [vendors, searchTerm, statusFilter, selectedMarket, rentSortOrder]);
+  }, [vendors, searchTerm, statusFilter, selectedMarket, rentSortOrder, nameSortOrder]);
 
   // Handler: Individual Selection
   const toggleSelect = (id: string, e: React.MouseEvent) => {
@@ -170,7 +179,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
         </div>
       </div>
 
-      {/* Advanced Control Block - Redesigned with required filters */}
+      {/* Advanced Control Block */}
       <div className="bg-white p-8 rounded-[48px] border border-slate-200 shadow-xl space-y-8">
         <div className="flex flex-wrap gap-6 items-end">
           {/* Search */}
@@ -186,12 +195,12 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
           </div>
           
           <div className="flex flex-wrap gap-4">
-              {/* Market Filter - Dropdown populated from constants */}
+              {/* Market Filter */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Building2 size={10}/> Market Hub</label>
                 <div className="relative">
                   <select 
-                    className="px-6 py-4 border-2 border-slate-100 rounded-[22px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[200px] shadow-sm cursor-pointer hover:bg-white transition-all pr-12" 
+                    className="px-6 py-4 border-2 border-slate-100 rounded-[22px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[180px] shadow-sm cursor-pointer hover:bg-white transition-all pr-12" 
                     value={selectedMarket} 
                     onChange={(e) => setSelectedMarket(e.target.value)}
                   >
@@ -202,31 +211,37 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
                 </div>
               </div>
 
-              {/* Integrity/Status Filter */}
+              {/* Alphabetical Sort */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><ShieldCheck size={10}/> Integrity Node</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><User size={10}/> Registry Name</label>
                 <div className="relative">
                   <select 
-                    className="px-6 py-4 border-2 border-slate-100 rounded-[22px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[150px] shadow-sm cursor-pointer hover:bg-white transition-all pr-12" 
-                    value={statusFilter} 
-                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-6 py-4 border-2 border-slate-100 rounded-[22px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[180px] shadow-sm cursor-pointer hover:bg-white transition-all pr-12" 
+                    value={nameSortOrder} 
+                    onChange={(e) => {
+                      setNameSortOrder(e.target.value as any);
+                      setRentSortOrder('NONE'); // Ensure sorts don't conflict
+                    }}
                   >
-                      <option value="ALL">All States</option>
-                      <option value="ACTIVE">Operational</option>
-                      <option value="SUSPENDED">Suspended</option>
+                      <option value="NONE">Default Order</option>
+                      <option value="A_Z">A to Z (Ascending)</option>
+                      <option value="Z_A">Z to A (Descending)</option>
                   </select>
-                  <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <ArrowUpDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
               </div>
 
-              {/* Rent Due Sort - Low to High / High to Low */}
+              {/* Rent Due Sort */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><DollarSign size={10}/> Rent Arrears</label>
                 <div className="relative">
                   <select 
                     className="px-6 py-4 border-2 border-slate-100 rounded-[22px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none focus:border-indigo-600 appearance-none min-w-[180px] shadow-sm cursor-pointer hover:bg-white transition-all pr-12" 
                     value={rentSortOrder} 
-                    onChange={(e) => setRentSortOrder(e.target.value as any)}
+                    onChange={(e) => {
+                      setRentSortOrder(e.target.value as any);
+                      setNameSortOrder('NONE'); // Ensure sorts don't conflict
+                    }}
                   >
                       <option value="NONE">Sort by Amount</option>
                       <option value="LOW_HIGH">Low to High</option>
@@ -369,8 +384,3 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
     </div>
   );
 };
-
-// Internal icon component for cleaner code
-const ChevronDown = ({ size, className }: { size: number, className: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m6 9 6 6 6-6"/></svg>
-);
