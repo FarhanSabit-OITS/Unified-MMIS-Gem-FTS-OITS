@@ -184,7 +184,10 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
       if (!date) return;
       setVendors(prev => prev.map(v => selectedIds.has(v.id) ? { ...v, rentDueDate: date } : v));
     } else {
+      // Handle SUSPEND or ACTIVATE
       const nextStatus = action === 'ACTIVATE' ? 'ACTIVE' : 'SUSPENDED';
+      if (!confirm(`Confirm: Change status to ${nextStatus} for ${selectedIds.size} vendors?`)) return;
+      
       setVendors(prev => prev.map(v => selectedIds.has(v.id) ? { ...v, status: nextStatus as any } : v));
     }
     

@@ -8,7 +8,8 @@ import {
   CheckCircle, AlertTriangle, SortAsc, SortDesc,
   Filter, Calendar, DollarSign, LayoutGrid, Info,
   ArrowUpRight, ArrowDownLeft, CreditCard, PieChart,
-  RefreshCw, FileText, ChevronRight
+  RefreshCw, FileText, ChevronRight, MoreHorizontal,
+  XCircle, Flag
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
@@ -20,6 +21,7 @@ interface FinancialsModuleProps {
 }
 
 export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role, marketId, userId = 'v1' }) => {
+  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
   const isSuperAdmin = role === UserRole.SUPER_ADMIN;
   const isMarketAdmin = role === UserRole.MARKET_ADMIN;
   const isAdmin = isSuperAdmin || isMarketAdmin;
@@ -37,7 +39,7 @@ export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role, market
 
   // RBAC Enforcement & Data Triage
   const filteredTransactions = useMemo(() => {
-    return MOCK_TRANSACTIONS.filter(tx => {
+    return transactions.filter(tx => {
       // 1. RBAC Data Isolation Layer
       if (isVendor) {
         if (tx.entityId !== userId) return false;
@@ -71,7 +73,7 @@ export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role, market
       const valB = sortField === 'date' ? new Date(b.date).getTime() : b.amount;
       return sortOrder === 'ASC' ? valA - valB : valB - valA;
     });
-  }, [searchTerm, statusFilter, typeFilter, sortField, sortOrder, isVendor, isSupplier, isMarketAdmin, marketId, userId, dateRange]);
+  }, [transactions, searchTerm, statusFilter, typeFilter, sortField, sortOrder, isVendor, isSupplier, isMarketAdmin, marketId, userId, dateRange]);
 
   // Aggregated Fiscal Analytics
   const analytics = useMemo(() => {
@@ -90,6 +92,13 @@ export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role, market
     } else {
       setSortField(field);
       setSortOrder('DESC');
+    }
+  };
+
+  const handleStatusUpdate = (txId: string, newStatus: Transaction['status']) => {
+    if (!isAdmin) return;
+    if (confirm(`Are you sure you want to change transaction ${txId} status to ${newStatus}?`)) {
+      setTransactions(prev => prev.map(tx => tx.id === txId ? { ...tx, status: newStatus } : tx));
     }
   };
 
@@ -219,6 +228,7 @@ export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role, market
                    <option value="PENDING">IN TRANSIT</option>
                    <option value="OVERDUE">ARREARS PRESSURE</option>
                    <option value="ESCROW">LOCKED PROTOCOL</option>
+                   <option value="FLAGGED">FLAGGED</option>
                 </select>
              </div>
 
@@ -269,11 +279,12 @@ export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role, market
                 <th className="px-12 py-10 text-right">Volume (UGX)</th>
                 <th className="px-12 py-10 text-center">Integrity Node</th>
                 <th className="px-12 py-10 text-right">Node Sync Time</th>
+                {isAdmin && <th className="px-12 py-10 text-center">Admin Controls</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredTransactions.map(tx => (
-                <tr key={tx.id} className="hover:bg-indigo-50/40 transition-all group cursor-pointer border-l-4 border-l-transparent hover:border-l-indigo-600">
+                <tr key={tx.id} className="hover:bg-indigo-50/40 transition-all group border-l-4 border-l-transparent hover:border-l-indigo-600">
                   <td className="px-12 py-8">
                      <div className="font-mono text-sm font-black text-slate-950 uppercase tracking-tighter group-hover:text-indigo-600 transition-colors">#{tx.id}</div>
                      <div className="text-[10px] text-slate-400 font-bold mt-2 tracking-widest flex items-center gap-1.5 uppercase">
@@ -305,19 +316,57 @@ export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role, market
                         tx.status === 'PAID' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
                         tx.status === 'OVERDUE' ? 'bg-rose-50 text-rose-700 border-rose-100' :
                         tx.status === 'ESCROW' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
+                        tx.status === 'FLAGGED' ? 'bg-red-50 text-red-700 border-red-100' :
                         'bg-amber-50 text-amber-700 border-amber-100'
                      }`}>
+                        {tx.status === 'FLAGGED' && <Flag size={12}/>}
                         {tx.status}
                      </div>
                   </td>
                   <td className="px-12 py-8 text-right font-mono text-[11px] font-black text-slate-400 uppercase tracking-tighter">
                      {tx.date}
                   </td>
+                  {isAdmin && (
+                    <td className="px-12 py-8 text-center">
+                       <div className="flex justify-center gap-2">
+                          {tx.status === 'PENDING' && (
+                            <button 
+                              onClick={() => handleStatusUpdate(tx.id, 'PAID')}
+                              className="p-3 rounded-xl bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors"
+                              title="Mark as Settled"
+                            >
+                              <CheckCircle size={16} />
+                            </button>
+                          )}
+                          {(tx.status === 'PENDING' || tx.status === 'OVERDUE') && (
+                            <button 
+                              onClick={() => handleStatusUpdate(tx.id, 'FLAGGED')}
+                              className="p-3 rounded-xl bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                              title="Flag Transaction"
+                            >
+                              <Flag size={16} />
+                            </button>
+                          )}
+                          {tx.status === 'FLAGGED' && (
+                            <button 
+                              onClick={() => handleStatusUpdate(tx.id, 'PENDING')}
+                              className="p-3 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+                              title="Resolve Flag"
+                            >
+                              <RefreshCw size={16} />
+                            </button>
+                          )}
+                          {tx.status === 'PAID' && (
+                             <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">LOCKED</span>
+                          )}
+                       </div>
+                    </td>
+                  )}
                 </tr>
               ))}
               {filteredTransactions.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-12 py-32 text-center text-slate-400 bg-slate-50/50">
+                  <td colSpan={isAdmin ? 7 : 6} className="px-12 py-32 text-center text-slate-400 bg-slate-50/50">
                      <div className="flex flex-col items-center gap-6">
                         <History size={80} className="opacity-10" />
                         <div className="space-y-2">
