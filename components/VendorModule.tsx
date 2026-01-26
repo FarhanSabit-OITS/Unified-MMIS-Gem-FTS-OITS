@@ -45,6 +45,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
   
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [qrModalVendor, setQrModalVendor] = useState<Vendor | null>(null);
+  const [qrType, setQrType] = useState<'OPERATOR' | 'STORE'>('OPERATOR');
 
   // Computed: Filtered and Sorted list for display and bulk logic
   const filteredVendors = useMemo(() => {
@@ -344,13 +345,22 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
                      </span>
                   </td>
                   <td className="px-10 py-8 text-right" onClick={(e) => e.stopPropagation()}>
-                      <button 
-                        onClick={() => setQrModalVendor(vendor)}
-                        className="flex items-center gap-3 ml-auto px-6 py-3 bg-slate-950 hover:bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg group/qr"
-                      >
-                        <QrCode size={16} className="group-hover/qr:scale-110 transition-transform" />
-                        <span>Issue Token</span>
-                      </button>
+                      <div className="flex justify-end gap-3">
+                        <button 
+                            onClick={() => { setQrModalVendor(vendor); setQrType('STORE'); }}
+                            className="p-3 bg-white border-2 border-slate-100 hover:border-indigo-600 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all shadow-sm group/store"
+                            title="Generate Store QR"
+                        >
+                            <Store size={20} className="group-hover/store:scale-110 transition-transform" />
+                        </button>
+                        <button 
+                            onClick={() => { setQrModalVendor(vendor); setQrType('OPERATOR'); }}
+                            className="flex items-center gap-3 px-6 py-3 bg-slate-950 hover:bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg group/qr"
+                        >
+                            <QrCode size={16} className="group-hover/qr:scale-110 transition-transform" />
+                            <span>Issue Token</span>
+                        </button>
+                      </div>
                   </td>
                 </tr>
               );
@@ -434,7 +444,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
         </div>
       )}
 
-      {/* QR Modal (Unchanged) */}
+      {/* QR Modal */}
       {qrModalVendor && (
         <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-2xl z-[200] flex items-center justify-center p-4 animate-in fade-in">
            <div className="bg-white rounded-[72px] shadow-2xl max-w-md w-full p-16 text-center relative overflow-hidden group">
@@ -443,9 +453,11 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
               
               <div className="mb-12">
                 <div className="w-24 h-24 bg-indigo-50 text-indigo-600 rounded-[32px] flex items-center justify-center mx-auto mb-8 shadow-2xl ring-8 ring-white">
-                  <ShieldCheck size={48} />
+                  {qrType === 'OPERATOR' ? <ShieldCheck size={48} /> : <Store size={48} />}
                 </div>
-                <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-3">Operator Token</h3>
+                <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-3">
+                    {qrType === 'OPERATOR' ? 'Operator Token' : 'Store Identity'}
+                </h3>
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em]">{qrModalVendor.name}</p>
               </div>
 
@@ -453,7 +465,9 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
                  <div className="bg-white p-6 rounded-[40px] shadow-inner relative z-10">
                     <QrCode size={180} className="text-slate-900" />
                  </div>
-                 <p className="text-indigo-400 mt-10 font-mono font-black tracking-[0.4em] text-sm uppercase">KEY-{qrModalVendor.id.toUpperCase()}</p>
+                 <p className="text-indigo-400 mt-10 font-mono font-black tracking-[0.4em] text-sm uppercase">
+                    {qrType === 'OPERATOR' ? `KEY-${qrModalVendor.id.toUpperCase()}` : `STORE-${qrModalVendor.shopNumber}`}
+                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

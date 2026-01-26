@@ -53,7 +53,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, setUser,
       case 'registry': return <MarketRegistry userRole={user.role} />;
       case 'assets': return <AssetManagementModule userRole={user.role} marketId={user.marketId} />;
       case 'myshop': return <MyShopModule isSupplier={isSupplier} />;
-      case 'financials': return <FinancialsModule role={user.role} marketId={user.marketId} />;
+      case 'financials': return <FinancialsModule role={user.role} marketId={user.marketId} userId={user.id} />;
       case 'orders': return <OrdersModule user={user} />;
       case 'requisitions': return <SupplyRequisitions userRole={user.role} />;
       case 'gate': return <GateManagementModule />;
@@ -62,7 +62,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, setUser,
       case 'profile': return <ProfileSettings />;
       case 'qr': return <QRModule />;
       default: 
-        if (isAdmin) return <FinancialsModule role={user.role} marketId={user.marketId} />;
+        if (isAdmin) return <FinancialsModule role={user.role} marketId={user.marketId} userId={user.id} />;
         if (isVendor) return <MyShopModule />;
         if (isSupplier) return <SuppliersNetwork userRole={user.role} userId={user.id} />;
         if (isGateStaff) return <GateManagementModule />;
