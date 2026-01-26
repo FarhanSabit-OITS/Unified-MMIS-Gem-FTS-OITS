@@ -8,7 +8,7 @@ import {
   CheckSquare, Square, DollarSign, ListFilter, MoreVertical,
   Building2, MapPin, User, ChevronDown, ExternalLink, Trash2,
   AlertCircle, CheckCircle2, FileJson, CalendarCheck, CreditCard,
-  SortAsc, SortDesc
+  SortAsc, SortDesc, Calendar
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { VendorDetailsModal } from './VendorDetailsModal';
@@ -20,7 +20,7 @@ interface VendorModuleProps {
 }
 
 type SortConfig = {
-  key: 'market' | 'name' | 'rent' | null;
+  key: 'market' | 'name' | 'rent' | 'status' | null;
   direction: 'asc' | 'desc';
 };
 
@@ -42,16 +42,28 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
   const initialMarket = isMarketAdmin ? marketId : 'ALL';
   const [selectedMarket, setSelectedMarket] = useState(initialMarket || 'ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [rentStatusFilter, setRentStatusFilter] = useState('ALL');
   
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [qrModalVendor, setQrModalVendor] = useState<Vendor | null>(null);
   const [qrType, setQrType] = useState<'OPERATOR' | 'STORE'>('OPERATOR');
 
+  // Helper to determine Rent Status
+  const getRentStatus = (v: Vendor) => {
+    if (v.rentDue <= 0) return 'PAID';
+    const today = new Date().toISOString().split('T')[0];
+    if (v.rentDueDate && v.rentDueDate < today) return 'OVERDUE';
+    return 'PENDING';
+  };
+
   // Computed: Filtered and Sorted list for display and bulk logic
   const filteredVendors = useMemo(() => {
     let result = vendors.filter(v => {
       const term = searchTerm.toLowerCase();
-      const matchesSearch = v.name.toLowerCase().includes(term) || v.shopNumber.toLowerCase().includes(term);
+      // Added search by ID
+      const matchesSearch = v.name.toLowerCase().includes(term) || 
+                            v.shopNumber.toLowerCase().includes(term) || 
+                            v.id.toLowerCase().includes(term);
       const matchesStatus = statusFilter === 'ALL' || v.status === statusFilter;
       
       let matchesMarket = true;
@@ -60,8 +72,14 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
       } else {
         matchesMarket = selectedMarket === 'ALL' || v.marketId === selectedMarket;
       }
+
+      // Rent Status Filter
+      let matchesRentStatus = true;
+      if (rentStatusFilter !== 'ALL') {
+          matchesRentStatus = getRentStatus(v) === rentStatusFilter;
+      }
       
-      return matchesSearch && matchesStatus && matchesMarket;
+      return matchesSearch && matchesStatus && matchesMarket && matchesRentStatus;
     });
 
     // Enhanced Relational Sorting Logic
@@ -77,6 +95,9 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
         } else if (sortConfig.key === 'rent') {
           valA = a.rentDue;
           valB = b.rentDue;
+        } else if (sortConfig.key === 'status') {
+          valA = a.status;
+          valB = b.status;
         } else {
           valA = a.name;
           valB = b.name;
@@ -89,7 +110,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
     }
 
     return result;
-  }, [vendors, searchTerm, statusFilter, selectedMarket, isMarketAdmin, marketId, sortConfig]);
+  }, [vendors, searchTerm, statusFilter, selectedMarket, rentStatusFilter, isMarketAdmin, marketId, sortConfig]);
 
   const handleSort = (key: SortConfig['key']) => {
     setSortConfig(prev => ({
@@ -107,6 +128,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
       'Market Hub', 
       'Category',
       'Operational Status', 
+      'Rent Status',
       'Current Rent Arrears (UGX)', 
       'Due Date',
       'Contact Email',
@@ -121,6 +143,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
       `"${MARKETS.find(m => m.id === v.marketId)?.name || 'Unknown'}"`,
       v.storeType || 'N/A',
       v.status,
+      getRentStatus(v),
       v.rentDue,
       v.rentDueDate || 'N/A',
       v.email || 'N/A',
@@ -178,7 +201,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
       if (!confirm(`CAUTION: Permanently purge ${selectedIds.size} entities from the registry? This action is irreversible.`)) return;
       setVendors(prev => prev.filter(v => !selectedIds.has(v.id)));
     } else if (action === 'MARK_PAID') {
-      if (!confirm(`Confirm: Mark rent as PAID for ${selectedIds.size} selected vendors?`)) return;
+      if (!confirm(`Confirm: Mark rent as PAID for ${selectedIds.size} selected vendors? This will set their arrears to 0.`)) return;
       setVendors(prev => prev.map(v => selectedIds.has(v.id) ? { ...v, rentDue: 0 } : v));
     } else if (action === 'SET_DUE_DATE') {
       const date = prompt('Input Global Rent Due Date (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
@@ -193,6 +216,14 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
     }
     
     setSelectedIds(new Set());
+  };
+
+  const getRentStatusColor = (status: string) => {
+      switch(status) {
+          case 'PAID': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+          case 'OVERDUE': return 'bg-rose-100 text-rose-700 border-rose-200';
+          default: return 'bg-amber-100 text-amber-700 border-amber-200';
+      }
   };
 
   return (
@@ -244,17 +275,17 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
             />
           </div>
           
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Market Scope Filter</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Market Scope</label>
                 <div className="relative group">
                   <select 
                     disabled={isMarketAdmin}
-                    className={`px-6 py-4 border-2 border-slate-100 rounded-[22px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none appearance-none transition-all min-w-[240px] cursor-pointer ${isMarketAdmin ? 'opacity-50 grayscale' : 'group-hover:border-indigo-600 hover:bg-white'}`}
+                    className={`px-6 py-4 border-2 border-slate-100 rounded-[22px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none appearance-none transition-all min-w-[200px] cursor-pointer ${isMarketAdmin ? 'opacity-50 grayscale' : 'group-hover:border-indigo-600 hover:bg-white'}`}
                     value={selectedMarket} 
                     onChange={(e) => setSelectedMarket(e.target.value)}
                   >
-                      {isSuperAdmin && <option value="ALL">Global Registry View</option>}
+                      {isSuperAdmin && <option value="ALL">Global View</option>}
                       {MARKETS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-indigo-600 transition-colors" size={16} />
@@ -262,15 +293,32 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
               </div>
 
               <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fiscal Status</label>
+                <div className="relative group">
+                  <select 
+                    className="px-6 py-4 border-2 border-slate-100 rounded-[22px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none appearance-none transition-all min-w-[160px] cursor-pointer group-hover:border-indigo-600 hover:bg-white"
+                    value={rentStatusFilter} 
+                    onChange={(e) => setRentStatusFilter(e.target.value)}
+                  >
+                      <option value="ALL">All Financials</option>
+                      <option value="PAID">Paid</option>
+                      <option value="PENDING">Pending</option>
+                      <option value="OVERDUE">Overdue</option>
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Lifecycle Status</label>
                 <div className="relative group">
                   <select 
-                    className="px-6 py-4 border-2 border-slate-100 rounded-[22px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none appearance-none transition-all min-w-[180px] cursor-pointer group-hover:border-indigo-600 hover:bg-white"
+                    className="px-6 py-4 border-2 border-slate-100 rounded-[22px] text-[10px] font-black uppercase tracking-widest bg-slate-50 outline-none appearance-none transition-all min-w-[160px] cursor-pointer group-hover:border-indigo-600 hover:bg-white"
                     value={statusFilter} 
                     onChange={(e) => setStatusFilter(e.target.value)}
                   >
                       <option value="ALL">All States</option>
-                      <option value="ACTIVE">Active Nodes</option>
+                      <option value="ACTIVE">Active</option>
                       <option value="SUSPENDED">Suspended</option>
                   </select>
                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
@@ -285,7 +333,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
         <table className="w-full text-sm text-left">
           <thead className="bg-slate-950 text-indigo-400 font-black uppercase text-[11px] tracking-[0.4em] border-b border-slate-900">
             <tr>
-              <th className="px-10 py-10 w-10">
+              <th className="px-8 py-10 w-10">
                 <button 
                   onClick={toggleSelectAll}
                   className={`transition-all ${isAllSelected ? 'text-white' : 'text-indigo-400 hover:text-white'}`}
@@ -293,7 +341,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
                   {isAllSelected ? <CheckSquare size={24}/> : <Square size={24}/>}
                 </button>
               </th>
-              <th className="px-10 py-10 cursor-pointer group select-none" onClick={() => handleSort('name')}>
+              <th className="px-8 py-10 cursor-pointer group select-none" onClick={() => handleSort('name')}>
                 <div className="flex items-center gap-2">
                   Registry Node
                   <span className="transition-opacity group-hover:opacity-100 opacity-40">
@@ -301,7 +349,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
                   </span>
                 </div>
               </th>
-              <th className="px-10 py-10 cursor-pointer group select-none" onClick={() => handleSort('market')}>
+              <th className="px-8 py-10 cursor-pointer group select-none" onClick={() => handleSort('market')}>
                 <div className="flex items-center gap-2">
                   Unit & Hub
                   <span className="transition-opacity group-hover:opacity-100 opacity-40">
@@ -309,42 +357,69 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
                   </span>
                 </div>
               </th>
-              <th className="px-10 py-10">Status</th>
-              <th className="px-10 py-10 text-right">Node Protocol</th>
+              <th className="px-8 py-10">Fiscal Standing</th>
+              <th className="px-8 py-10 cursor-pointer group select-none" onClick={() => handleSort('status')}>
+                <div className="flex items-center gap-2">
+                  Status
+                  <span className="transition-opacity group-hover:opacity-100 opacity-40">
+                    {sortConfig.key === 'status' ? (sortConfig.direction === 'asc' ? <SortAsc size={14} className="text-white"/> : <SortDesc size={14} className="text-white"/>) : <ArrowUpDown size={14}/>}
+                  </span>
+                </div>
+              </th>
+              <th className="px-8 py-10 text-right">Node Protocol</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filteredVendors.map(vendor => {
               const isSelected = selectedIds.has(vendor.id);
+              const rentStatus = getRentStatus(vendor);
+              const rentColor = getRentStatusColor(rentStatus);
+
               return (
                 <tr 
                   key={vendor.id} 
                   className={`hover:bg-indigo-50/40 transition-all group cursor-pointer border-l-4 ${isSelected ? 'bg-indigo-50/60 border-l-indigo-600' : 'border-l-transparent'}`} 
                   onClick={() => setSelectedVendor(vendor)}
                 >
-                  <td className="px-10 py-8" onClick={(e) => toggleSelect(vendor.id, e)}>
+                  <td className="px-8 py-8" onClick={(e) => toggleSelect(vendor.id, e)}>
                     <button className={`transition-colors ${isSelected ? 'text-indigo-600' : 'text-slate-200 group-hover:text-indigo-300'}`}>
                        {isSelected ? <CheckSquare size={24}/> : <Square size={24}/>}
                     </button>
                   </td>
-                  <td className="px-10 py-8">
+                  <td className="px-8 py-8">
                     <div className="font-black text-slate-950 uppercase tracking-tight text-base leading-none group-hover:text-indigo-600 transition-colors">{vendor.name}</div>
                     <div className="text-[10px] text-slate-400 font-bold mt-2 tracking-widest uppercase flex items-center gap-2">
                       <User size={10} className="text-indigo-300"/> ID: {vendor.id}
                     </div>
                   </td>
-                  <td className="px-10 py-8">
+                  <td className="px-8 py-8">
                       <div className="font-mono text-xs font-black text-slate-800 tracking-[0.2em]">#{vendor.shopNumber}</div>
                       <div className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-2 flex items-center gap-1.5">
                          <MapPin size={10} className="text-rose-400"/> {MARKETS.find(m => m.id === vendor.marketId)?.name}
                       </div>
                   </td>
-                  <td className="px-10 py-8">
-                     <span className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border-2 transition-all ${vendor.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
+                  <td className="px-8 py-8">
+                      <div className="flex flex-col items-start gap-1">
+                         <div className={`inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${rentColor}`}>
+                            <div className="w-1.5 h-1.5 rounded-full mr-2 bg-current animate-pulse"></div>
+                            {rentStatus}
+                         </div>
+                         <div className="text-[10px] font-bold text-slate-400 mt-1 flex items-center gap-1">
+                            <Calendar size={10}/> Due: {vendor.rentDueDate || 'N/A'}
+                         </div>
+                         {vendor.rentDue > 0 && (
+                            <div className="text-[10px] font-black text-slate-900 mt-0.5">
+                               Arrears: {vendor.rentDue.toLocaleString()} UGX
+                            </div>
+                         )}
+                      </div>
+                  </td>
+                  <td className="px-8 py-8">
+                     <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border-2 transition-all ${vendor.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
                         {vendor.status}
                      </span>
                   </td>
-                  <td className="px-10 py-8 text-right" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-8 py-8 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-3">
                         <button 
                             onClick={() => { setQrModalVendor(vendor); setQrType('STORE'); }}
@@ -367,7 +442,7 @@ export const VendorModule: React.FC<VendorModuleProps> = ({
             })}
             {filteredVendors.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-10 py-32 text-center text-slate-400 bg-slate-50/50">
+                <td colSpan={6} className="px-10 py-32 text-center text-slate-400 bg-slate-50/50">
                   <Store size={64} className="mx-auto mb-6 opacity-10" />
                   <p className="font-black uppercase tracking-[0.4em] text-sm text-slate-950">No Entities Triangulated</p>
                   <p className="text-xs font-bold uppercase tracking-widest mt-2">Adjust registry filters or search parameters</p>
