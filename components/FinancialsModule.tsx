@@ -373,7 +373,7 @@ export const FinancialsModule: React.FC<FinancialsModuleProps> = ({ role, market
                            <p className="font-black uppercase tracking-[0.4em] text-sm text-slate-950">Protocol Nullification</p>
                            <p className="text-xs font-bold uppercase tracking-widest max-w-xs mx-auto leading-relaxed">No telemetry data triangulated in this quadrant of the fiscal registry.</p>
                         </div>
-                        <Button variant="outline" onClick={() => {setSearchTerm(''); setStatusFilter('ALL'); setTypeFilter('ALL'); setDateRange({start:'', end:''}); }} className="font-black text-[10px] border-2 rounded-2xl px-8 h-12 uppercase tracking-widest">Registry Reset</p>
+                        <Button variant="outline" onClick={() => {setSearchTerm(''); setStatusFilter('ALL'); setTypeFilter('ALL'); setDateRange({start:'', end:''}); }} className="font-black text-[10px] border-2 rounded-2xl px-8 h-12 uppercase tracking-widest">Registry Reset</Button>
                      </div>
                   </td>
                 </tr>
