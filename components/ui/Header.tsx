@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LayoutDashboard, Search, X, ChevronRight, Store, Package, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, Search, X, ChevronRight, Store, Package, ShoppingBag, BookOpen } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { MOCK_VENDORS, MOCK_PRODUCTS } from '../../constants';
 
@@ -7,9 +7,10 @@ interface HeaderProps {
   user: UserProfile | null;
   isSimplified?: boolean;
   onLogoClick?: () => void;
+  onManualClick?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ user, isSimplified, onLogoClick }) => {
+export const Header: React.FC<HeaderProps> = ({ user, isSimplified, onLogoClick, onManualClick }) => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
@@ -119,6 +120,13 @@ export const Header: React.FC<HeaderProps> = ({ user, isSimplified, onLogoClick 
           </div>
 
           <div className="flex items-center gap-3">
+            <button 
+              onClick={onManualClick}
+              className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-sm font-bold transition-colors mr-2"
+            >
+              <BookOpen size={16} />
+              <span className="hidden sm:inline">User Manual</span>
+            </button>
             <div className="text-right hidden sm:block">
               <div className="text-sm font-bold text-slate-900">{user.name}</div>
               <div className="text-xs text-slate-500">{user.role}</div>

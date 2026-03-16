@@ -16,13 +16,14 @@ import { SupplyRequisitions } from './SupplyRequisitions';
 import { OrdersModule } from './OrdersModule';
 import { QRModule } from './QRModule';
 import { UserManagementModule } from './UserManagementModule';
+import { UserManual } from './UserManual';
 import { Header } from './ui/Header';
 import { NotificationCenter } from './NotificationCenter';
 import { AIChatbot } from './AIChatbot';
 import { 
   LayoutDashboard, Store, Truck, Users, BarChart3, Settings, LogOut, 
   ShieldCheck, Wallet, QrCode, ShoppingBag, Camera, Map, FileText, 
-  Menu, X, UserPlus, ClipboardList, Gavel
+  Menu, X, UserPlus, ClipboardList, Gavel, BookOpen
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -61,6 +62,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, setUser,
       case 'applications': return <UserApplications />;
       case 'profile': return <ProfileSettings />;
       case 'qr': return <QRModule />;
+      case 'manual': return <UserManual />;
       default: 
         if (isAdmin) return <FinancialsModule role={user.role} marketId={user.marketId} userId={user.id} />;
         if (isVendor) return <MyShopModule />;
@@ -144,6 +146,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, setUser,
 
            <div className="mb-6">
               <div className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Support</div>
+              <NavItem view="manual" icon={BookOpen} label="User Manual" />
               <NavItem view="tickets" icon={Users} label="Help Desk" />
               {isUser && <NavItem view="applications" icon={FileText} label="Applications" />}
            </div>
@@ -160,7 +163,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user, setUser,
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
          <div className="hidden md:block">
-            <Header user={user} onLogoClick={() => setCurrentView('overview')} />
+            <Header user={user} onLogoClick={() => setCurrentView('overview')} onManualClick={() => setCurrentView('manual')} />
          </div>
          <div className="flex-1 overflow-y-auto p-4 md:p-8 relative">
             {renderContent()}

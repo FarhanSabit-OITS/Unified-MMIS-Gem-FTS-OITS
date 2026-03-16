@@ -7,8 +7,10 @@ import { LandingPage } from './components/LandingPage';
 import { ApiService } from './services/api';
 import { Loader2 } from 'lucide-react';
 
+import { UserManual } from './components/UserManual';
+
 export const App = () => {
-  const [view, setView] = useState<'LANDING' | 'AUTH' | 'ONBOARDING' | 'DASHBOARD' | 'VERIFYING'>('LANDING');
+  const [view, setView] = useState<'LANDING' | 'AUTH' | 'ONBOARDING' | 'DASHBOARD' | 'VERIFYING' | 'MANUAL'>('LANDING');
   const [user, setUser] = useState<UserProfile | null>(null);
   const [notification, setNotification] = useState<{msg: string, type: 'success'|'error'} | null>(null);
 
@@ -93,7 +95,21 @@ export const App = () => {
       )}
 
       {view === 'LANDING' && (
-        <LandingPage onLoginClick={() => setView('AUTH')} />
+        <LandingPage onLoginClick={() => setView('AUTH')} onManualClick={() => setView('MANUAL')} />
+      )}
+
+      {view === 'MANUAL' && (
+        <div className="min-h-screen bg-slate-50 p-8">
+          <div className="max-w-4xl mx-auto mb-6">
+            <button 
+              onClick={() => setView('LANDING')}
+              className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-2"
+            >
+              &larr; Back to Home
+            </button>
+          </div>
+          <UserManual />
+        </div>
       )}
 
       {view === 'AUTH' && (

@@ -10,9 +10,10 @@ import { Card } from './ui/Card';
 
 interface LandingPageProps {
   onLoginClick: () => void;
+  onManualClick?: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onManualClick }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSolution, setActiveSolution] = useState<'ADMIN' | 'VENDOR' | 'SUPPLIER'>('ADMIN');
   const [contactStatus, setContactStatus] = useState<'IDLE' | 'SENDING' | 'SENT'>('IDLE');
@@ -66,6 +67,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick }) => {
               <a href="#solutions" className="text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors uppercase tracking-widest">Solutions</a>
               <a href="#contact" className="text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors uppercase tracking-widest">Contact</a>
               <button 
+                onClick={onManualClick}
+                className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors uppercase tracking-widest"
+              >
+                User Manual
+              </button>
+              <button 
                 onClick={onLoginClick}
                 className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase tracking-widest rounded-full transition-all shadow-xl shadow-slate-200"
               >
@@ -86,6 +93,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick }) => {
              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-black text-slate-600 uppercase tracking-widest">Features</a>
              <a href="#solutions" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-black text-slate-600 uppercase tracking-widest">Solutions</a>
              <a href="#contact" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-black text-slate-600 uppercase tracking-widest">Contact</a>
+             <button onClick={() => { setMobileMenuOpen(false); onManualClick?.(); }} className="block text-sm font-black text-indigo-600 uppercase tracking-widest">User Manual</button>
              <button onClick={onLoginClick} className="w-full py-4 bg-indigo-600 text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg">Access Portal</button>
           </div>
         )}
